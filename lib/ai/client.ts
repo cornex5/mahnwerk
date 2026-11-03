@@ -123,14 +123,22 @@ export function createAiClient(opts: CreateAiClientOptions = {}): AiClient {
 
   async function complete(req: ModelRequest): Promise<ModelResponse> {
     const maxTokens = Math.min(req.maxTokens ?? defaultMaxTokens, MAX_TOKENS_CEILING);
+    // Some current models reject forced tool_choice ("tool" or "any"). Those are sent as "auto" plus an
+    // explicit instruction; callers already treat a missing or invalid tool call as a failed draft.
+    const forced = req.toolChoice && (req.toolChoice.type === "tool" || req.toolChoice.type === "any") ? req.toolChoice : null;
+    const forcedNote = forced
+      ? forced.type === "tool"
+        ? `\n\nYou must respond only by calling the tool "${forced.name}". Do not write any other text.`
+        : "\n\nYou must respond only by calling one of the provided tools. Do not write any other text."
+      : "";
     const body: Record<string, unknown> = {
       model,
       max_tokens: maxTokens,
-      system: req.system,
+      system: `${req.system}${forcedNote}`,
       messages: req.messages.map((m) => ({ role: m.role, content: toWireContent(m.content) })),
     };
     if (req.tools && req.tools.length > 0) body.tools = req.tools.map((x) => ({ ...x }));
-    if (req.toolChoice) body.tool_choice = req.toolChoice;
+    if (req.toolChoice) body.tool_choice = forced ? { type: "auto" } : req.toolChoice;
 
     for (let attempt = 0; ; attempt++) {
       try {

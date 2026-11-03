@@ -54,7 +54,8 @@ describe("AI client", () => {
       maxTokens: 999_999,
     });
     expect(t.calls[0].options).toEqual({ timeout: 1234 });
-    expect(t.calls[0].body).toMatchObject({ model: DEFAULT_MODEL, max_tokens: MAX_TOKENS_CEILING, system: "sys", tool_choice: { type: "tool", name: "x" } });
+    expect(t.calls[0].body).toMatchObject({ model: DEFAULT_MODEL, max_tokens: MAX_TOKENS_CEILING, tool_choice: { type: "auto" } });
+    expect(String(t.calls[0].body.system)).toContain('calling the tool "x"');
     expect(r.content).toEqual([
       { type: "text", text: "hi" },
       { type: "tool_use", id: "t1", name: "x", input: { a: 1 } },
