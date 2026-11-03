@@ -34,11 +34,15 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - [x] Repo attached and cloned, Next.js scaffold
 - [x] Rules engine and tests 1-9 (26 tests pass; test 4 = 854 cents)
 - [x] Supabase project mahnwerk (eu-central-1, ref rhelfhiiohajafwnkxhs) and Vercel project mahnwerk created, non-secret env set
-- [ ] Supabase schema, PayPal client, webhook pipeline, state machine
+- [x] Supabase schema written (supabase/migrations/0001_init.sql), NOT yet applied
+- [x] PayPal REST client (lib/paypal), state machine and reconciler (lib/cases), webhook route (app/api/webhooks/paypal); 106 tests pass offline, typecheck, eslint and next build clean
+- [ ] Apply migration via Supabase connector, set SUPABASE_SERVICE_ROLE_KEY and PAYPAL_WEBHOOK_ID in Vercel, register the webhook URL in the PayPal app
 - [ ] Deployed skeleton, Devpost draft (by Nov 5)
 
 ## Open items
 - Jonas: PayPal developer account, Business sandbox with Invoicing and Disputes enabled, REST app credentials, Devpost registration
 - Jonas: Supabase project choice, keys into env himself
 - Jonas: Vercel project linked to the repo
-- Verify: SDK coverage of Invoicing v2 and Disputes (@paypal/paypal-server-sdk), else direct REST
+- Decided: direct REST via fetch (no SDK) for Invoicing v2, Disputes and webhook verification
+- Decide: refund semantics. The rules engine treats a refund as a negative payment (reopens principal); PayPal treats a merchant refund as money returned, often a claim reduction. Reconciler only reopens a case when PayPal reports due_amount > 0 and flags partial refunds for review
+- Verify in sandbox: payment_id in invoice payments equals the capture/transaction id used by disputes and PAYMENT.CAPTURE.REFUNDED (linking depends on it); exact INVOICING webhook resource shape (resource.id vs resource.invoice.id, both handled)
