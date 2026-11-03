@@ -20,7 +20,7 @@ No sign-up. Open https://mahnwerk.vercel.app and choose one of two paths.
 2. **Try the live demo.** Creates your own private workspace (anonymous session, expires after 48 hours). Suggested walkthrough:
    1. Click "New invoice", pick a debtor, 1000 EUR, due in 1 day. This creates and sends a real invoice on the PayPal sandbox.
    2. Advance the demo clock by 14 days. The rules engine proposes a payment reminder in the approval queue, with AI-written wording.
-   3. Open the queue, read the letter, use "Why now" and the "Guardrail inspector", then "Approve and execute". The reminder goes out as a real PayPal sandbox reminder.
+   3. Open the queue, read the letter, use "Why now" and the "Guardrail inspector", then "Approve and execute". The reminder goes out as a real PayPal sandbox reminder. PayPal allows two reminders per day per app, shared by all visitors, so once that is used up the step falls back to an in-app letter and says so.
    4. Advance the clock further to get the 1st Mahnung, 2nd Mahnung and the handover notice. Amounts and interest come from the rules engine and are validated against the letter.
    5. On a case page, use the customer simulator to pay in full, pay partially, refund, or open a dispute. These run against the PayPal sandbox and flow through the same reconciler as real webhooks.
    6. Paste a debtor reply into "Debtor replied" (or use the prompt-injection example). The reply is classified into a fixed category and nothing is executed.
