@@ -32,7 +32,8 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 ## Status
 - [x] Phase 0 research, Phase 1 plan approved
 - [x] Repo attached and cloned, Next.js scaffold
-- [ ] Rules engine and tests 1-9 (test 4 corrected: expected 8.54, days counted start inclusive, end exclusive)
+- [x] Rules engine and tests 1-9 (26 tests pass; test 4 = 854 cents)
+- [x] Supabase project mahnwerk (eu-central-1, ref rhelfhiiohajafwnkxhs) and Vercel project mahnwerk created, non-secret env set
 - [ ] Supabase schema, PayPal client, webhook pipeline, state machine
 - [ ] Deployed skeleton, Devpost draft (by Nov 5)
 
