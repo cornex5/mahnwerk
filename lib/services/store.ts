@@ -174,6 +174,8 @@ export interface ServiceStore extends ReconcileStore {
   listSteps(caseId: string): Promise<FullStepRow[]>;
   /** Inserts a proposed dunning step unless the case already has a pending (proposed or approved) one. */
   insertProposedStep(row: { workspace_id: string; case_id: string; kind: StepKind; facts: Record<string, unknown> }): Promise<{ inserted: boolean; step: FullStepRow | null }>;
+  /** Replaces draft and validation of a step that is still 'proposed'. False when it is not (nothing written). */
+  setStepDraft(stepId: string, draft: Record<string, unknown> | null, validation: Record<string, unknown> | null): Promise<boolean>;
   /** Atomic decision with audit row. */
   decideStep(input: DecideStepInput): Promise<DecideStepResult>;
   /** Takes the execution lease of an approved step. False when another executor holds a fresh lease. */

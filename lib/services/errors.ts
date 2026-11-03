@@ -16,6 +16,7 @@ export type ServiceErrorCode =
   | "not_executable"
   | "rate_limited"
   | "paypal_failed"
+  | "ai_unavailable"
   | "internal";
 
 const STATUS: Record<ServiceErrorCode, number> = {
@@ -34,6 +35,7 @@ const STATUS: Record<ServiceErrorCode, number> = {
   not_executable: 409,
   rate_limited: 429,
   paypal_failed: 502,
+  ai_unavailable: 503,
   internal: 500,
 };
 

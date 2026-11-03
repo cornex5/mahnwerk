@@ -252,7 +252,13 @@ export async function askMahnwerk(question: string, deps: CopilotDeps): Promise<
         results.push({ type: "tool_result", tool_use_id: use.id, content: "Tool call limit reached. Answer with what you have.", is_error: true });
         continue;
       }
-      const out = await runTool(use, workspaceId, deps.store, proposed);
+      let out: ToolOutcome;
+      try {
+        out = await runTool(use, workspaceId, deps.store, proposed);
+      } catch (err) {
+        // A store refusal (ToolRefusal) carries a safe message for the model; anything else stays generic.
+        out = { ok: false, error: err instanceof Error && err.name === "ToolRefusal" ? err.message.slice(0, 300) : "Tool failed" };
+      }
       toolCalls.push(out.ok ? { name: use.name, ok: true } : { name: use.name, ok: false, error: out.error });
       results.push(
         out.ok

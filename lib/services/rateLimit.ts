@@ -11,6 +11,7 @@ export const RATE_RULES = {
   workspace_create: { limit: 5, windowMs: 60 * 60_000 },
   mutate: { limit: 60, windowMs: 60_000 },
   paypal_write: { limit: 20, windowMs: 60_000 },
+  ai: { limit: 12, windowMs: 60_000 },
 } satisfies Record<string, RateRule>;
 
 export type RateBucket = keyof typeof RATE_RULES;

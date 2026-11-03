@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { addDays } from "../rules/dates";
 import type { PayPalClient } from "../paypal/client";
+import type { AiGateway } from "../ai/budget";
 import { GoldenReadOnlyError, ServiceError } from "./errors";
 import type { ServiceStore, WorkspaceRow } from "./store";
 
@@ -47,8 +48,16 @@ export const DEFAULT_LIMITS: ServiceLimits = {
   maxInvoiceCents: 5_000_000,
 };
 
+/** Optional AI wiring. Without it every letter is the deterministic template and AI routes answer 503. */
+export interface AiServices {
+  gateway: AiGateway;
+  /** Hard cap for the draft generated while proposing a step. The proposal never waits longer. */
+  draftTimeoutMs?: number;
+}
+
 export interface ServiceDeps {
   store: ServiceStore;
+  ai?: AiServices;
   paypal: PayPalPort;
   /** Wall clock in ms. */
   now: () => number;

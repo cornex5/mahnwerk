@@ -235,6 +235,12 @@ export class SupabaseServiceStore extends SupabaseStore implements ServiceStore 
     return { inserted: false, step: (cur.data[0] as FullStepRow | undefined) ?? null };
   }
 
+  async setStepDraft(stepId: string, draft: Record<string, unknown> | null, validation: Record<string, unknown> | null) {
+    const r = await this.sb.from("steps").update({ draft, validation }).eq("id", stepId).eq("status", "proposed").select("id");
+    if (r.error) fail("update steps", r.error);
+    return r.data.length === 1;
+  }
+
   async decideStep(input: DecideStepInput): Promise<DecideStepResult> {
     const r = await this.sb.rpc("mw_decide_step", {
       p_step_id: input.stepId,

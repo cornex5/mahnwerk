@@ -259,6 +259,14 @@ export class MemoryServiceStore extends MemoryStore implements ServiceStore {
     return { inserted: true, step: structuredClone(s) };
   }
 
+  async setStepDraft(stepId: string, draft: Record<string, unknown> | null, validation: Record<string, unknown> | null) {
+    const s = this.fullSteps.find((x) => x.id === stepId);
+    if (!s || s.status !== "proposed") return false;
+    s.draft = draft === null ? null : structuredClone(draft);
+    s.validation = validation === null ? null : structuredClone(validation);
+    return true;
+  }
+
   async decideStep(input: DecideStepInput): Promise<DecideStepResult> {
     const s = this.fullSteps.find((x) => x.id === input.stepId);
     if (!s) return "not_found";

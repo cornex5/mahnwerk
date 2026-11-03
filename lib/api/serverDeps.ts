@@ -5,6 +5,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { getAiServices } from "../ai-wiring/serverAi";
 import { getSupabaseAdmin } from "../db/admin";
 import { SupabaseServiceStore } from "../db/supabaseServiceStore";
 import { getPayPalClient } from "../paypal/client";
@@ -54,6 +55,7 @@ export function serviceDeps(): ServiceDeps {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   if (!clientId) throw new Error("PAYPAL_CLIENT_ID is not set");
   services = {
+    ai: getAiServices(),
     store: new SupabaseServiceStore(getSupabaseAdmin()),
     paypal: getPayPalClient(),
     now: Date.now,

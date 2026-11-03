@@ -25,6 +25,7 @@ import {
 } from "./context";
 import { STEP_SPECS, claimAt, isDunningKind, planNextStage, type DunningKind, type StagePlan } from "./claims";
 import { letterFor, templateLetter, type Letter, type LetterFacts } from "./letters";
+import { draftBasisMatches, generateStepDraft } from "./stepDraft";
 import { isDefinitivePayPalFailure, payPalIssue, safeMessage } from "./paypalErrors";
 import type { FullCaseRow, FullInvoiceRow, FullStepRow, WorkspaceRow } from "./store";
 
@@ -147,6 +148,16 @@ export async function proposeNextStep(deps: ServiceDeps, caseId: string): Promis
       virtual_date: virtualDate,
       details: { step_id: ins.step.id, kind: plan.kind, total_due_cents: facts.claim.totalDueCents },
     });
+    // Letter draft: best effort. The step already exists, so no AI problem can block the proposal;
+    // without a validated draft the template letter is used at execution.
+    let step = ins.step;
+    try {
+      const outcome = await generateStepDraft(deps, ins.step.id);
+      if (outcome.status === "ai" || outcome.reason !== "no_ai") step = (await deps.store.getStep(ins.step.id)) ?? ins.step;
+    } catch {
+      // ignore: template fallback
+    }
+    return { caseId, plan, step, created: true };
   }
   return { caseId, plan, step: ins.step, created: ins.inserted };
 }
@@ -318,7 +329,17 @@ async function executeDunningStep(
     throw new ServiceError("not_executable", `The waiting period for ${kind} ends on ${plan.earliestDate}`);
   }
 
-  const letter: Letter = letterFor(await letterFactsFor(deps, kind, step, inv, virtualDate), step.draft, step.validation);
+  const letterFacts = await letterFactsFor(deps, kind, step, inv, virtualDate);
+  // An AI draft carries the amounts and date it was written for. If the claim moved since (interest,
+  // payments, clock), the draft is stale and the template with current figures is used instead.
+  const draftIsCurrent = draftBasisMatches(step.draft, {
+    virtual_date: virtualDate,
+    principal_cents: letterFacts.openPrincipalCents,
+    interest_cents: letterFacts.openInterestCents,
+    fee_cents: letterFacts.openFeeCents,
+    total_cents: letterFacts.totalDueCents,
+  });
+  const letter: Letter = letterFor(letterFacts, draftIsCurrent ? step.draft : null, draftIsCurrent ? step.validation : null);
 
   // Channel decision. Recorded on the step before the outbound call, so a retry never consumes
   // quota twice and reuses the same PayPal-Request-Id.
@@ -360,7 +381,7 @@ async function executeDunningStep(
   }
 
   const draft = { ...(step.draft ?? {}), letter, channel: sentVia === "paypal_remind" ? "paypal_reminder_and_in_app_letter" : "in_app_letter" };
-  const details = { approved_by: step.approved_by, approved_at: step.approved_at, fallback: fallback ?? null, letter_source: letter.source };
+  const details = { approved_by: step.approved_by, approved_at: step.approved_at, fallback: fallback ?? null, letter_source: letter.source, ...(draftIsCurrent ? {} : { draft_stale: true }) };
 
   let c = c0;
   for (let attempt = 0; attempt < MAX_CAS; attempt++) {
