@@ -16,7 +16,7 @@ This is a hackathon demo. It is not legal advice and not a substitute for a lawy
 
 No sign-up. Open https://mahnwerk.vercel.app and choose one of two paths.
 
-1. **See the example workspace** (read-only). Seven invoices in different stages at a fixed virtual date of 20 Nov 2026: reminded, first Mahnung, paused by a dispute, paid with interest still owed, and more. Browse cases, claim calculations, letters, the approval queue and the guardrail inspector. Everything that changes data is disabled here.
+1. **See the example workspace** (read-only). Seven invoices in different stages at a fixed virtual date of 20 Nov 2026: reminded, first Mahnung, paused by a dispute, paid with interest still owed, and more. Browse cases, claim calculations, letters, the approval queue and the guardrail inspector. Three of the queued letters are real Claude drafts, stored ahead of time so the example workspace spends no AI budget; the others show the template fallback. Everything that changes data is disabled here.
 2. **Try the live demo.** Creates your own private workspace (anonymous session, expires after 48 hours). Suggested walkthrough:
    1. Click "New invoice", pick a debtor, 1000 EUR, due in 1 day. This creates and sends a real invoice on the PayPal sandbox.
    2. Advance the demo clock by 14 days. The rules engine proposes a payment reminder in the approval queue, with AI-written wording.

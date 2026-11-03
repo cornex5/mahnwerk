@@ -7,31 +7,19 @@ import type { LetterFacts as AiLetterFacts, LetterKind as AiLetterKind } from ".
 import { letterFactsFromCalc } from "../ai/letterFacts";
 import { addDays } from "../rules/dates";
 import { claimAt, isDunningKind, type DunningKind } from "./claims";
+import { DEADLINE_DAYS, draftBasisOf, type DraftBasis } from "./draftBasis";
 import type { ServiceDeps } from "./context";
 import { virtualDateFor } from "./context";
 import { ServiceError } from "./errors";
 import { safeMessage } from "./paypalErrors";
 import type { FullCaseRow, FullInvoiceRow, FullStepRow, WorkspaceRow } from "./store";
 
+export { DEADLINE_DAYS, draftBasisOf };
+export type { DraftBasis };
+
 export const DEFAULT_DRAFT_TIMEOUT_MS = 8_000;
 
-/** Payment deadline written into a letter: virtual date plus these days (same periods as the template letters). */
-export const DEADLINE_DAYS: Record<DunningKind, number> = { reminder: 7, mahnung1: 7, mahnung2: 10, handover: 14 };
-
 const AI_KIND: Record<DunningKind, AiLetterKind> = { reminder: "reminder", mahnung1: "mahnung1", mahnung2: "mahnung2", handover: "handover_notice" };
-
-/** Amounts and date a stored AI draft was written for; compared again when the step is sent. */
-export interface DraftBasis {
-  virtual_date: string;
-  principal_cents: number;
-  interest_cents: number;
-  fee_cents: number;
-  total_cents: number;
-}
-
-export function draftBasisOf(f: AiLetterFacts, virtualDate: string): DraftBasis {
-  return { virtual_date: virtualDate, principal_cents: f.principalCents, interest_cents: f.interestCents, fee_cents: f.feeCents, total_cents: f.totalCents };
-}
 
 /** True when the draft carries no basis (hand-written, older) or its basis equals the current one. */
 export function draftBasisMatches(draft: Record<string, unknown> | null, current: DraftBasis): boolean {

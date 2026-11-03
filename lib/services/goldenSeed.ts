@@ -9,6 +9,7 @@ import { transition, type ActiveState, type CaseEvent, type CaseSnapshot, type C
 import type { ClaimFacts, LedgerRow } from "../cases/store";
 import { GOLDEN_VIRTUAL_DATE, stableKey } from "./context";
 import { STEP_SPECS, claimAt, planNextStage, type DunningKind } from "./claims";
+import { goldenAiDraft } from "./goldenAiDrafts";
 import { templateLetter } from "./letters";
 import type { CreditorRow, DebtorRow, FullInvoiceRow, FullStepRow, WorkspaceRow } from "./store";
 import { DEMO_CREDITOR, DEMO_DEBTORS } from "./workspaces";
@@ -275,6 +276,7 @@ export function buildGoldenSeed(seed: string): GoldenSeed {
     const plan = planNextStage({ state: snap.state, dueDate: sc.due, lastStepDate, virtualDate });
     if (plan.kind && plan.dueNow) {
       const stepId = id(`step-${num}-next`);
+      const aiExample = goldenAiDraft({ number: inv.number ?? num, kind: plan.kind, debtorType: debtor.type, debtorName: debtor.name, creditorName: creditor.name, claim, virtualDate });
       steps.push({
         id: stepId,
         workspace_id: wsId,
@@ -300,8 +302,8 @@ export function buildGoldenSeed(seed: string): GoldenSeed {
             citation: claim.citation,
           },
         },
-        draft: null,
-        validation: null,
+        draft: aiExample?.draft ?? null,
+        validation: aiExample?.validation ?? null,
         approved_by: null,
         approved_at: null,
         sent_via: null,
