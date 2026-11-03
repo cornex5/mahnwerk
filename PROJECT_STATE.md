@@ -40,7 +40,9 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - [x] Migrations 0003, 0004 applied; golden workspace seeded (88409d86-81a3-439c-8f01-17ad6ff111c3)
 - [x] Service layer, AI layer (draft, explain, copilot, classify), UI, deployed on Vercel (mahnwerk.vercel.app)
 - [x] Live E2E on sandbox verified: demo workspace, invoice create/send, remind, partial and full payment, PAID webhooks, dispute pause/resume, injection-safe classify, copilot, partial and full refund (fixed id-less refund rows)
-- [ ] Still to test: golden read-only behaviors, mahnung1/2 and fee_invoice execution, reminder quota fallback, AI budget exhaustion, expired workspace, RSC prefetch 503 seen once
+- [x] Live: golden read-only (clock, approve, copilot proposals disabled), full chain reminder, 1st and 2nd Mahnung, handover notice, fee invoice approve and execute; interest math checked by hand (43 days gives 12.39)
+- [x] Fixed: approval bound to the shown wording (draftFingerprint, live-verified conflict message); literal backslash-n in AI closings; German templates with umlauts and dd.mm.yyyy; golden letters reseeded
+- [ ] Still to test: reminder quota fallback (2 per day), AI budget exhausted, expired workspace, RSC prefetch 503 seen once, "Sending..." hang seen once on fee invoice approve (server finished fine, tab renderer froze)
 - [ ] Known: Sonnet 5.5 rejects forced tool_choice (client sends auto plus instruction); golden workspace shares one 40-call AI budget; German template letters use ASCII transliteration
 - [ ] Deployed skeleton, Devpost draft (by Nov 5)
 
