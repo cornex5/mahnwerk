@@ -136,6 +136,8 @@ export async function generateStepDraft(deps: ServiceDeps, stepId: string, opts:
       source: "ai",
       reviewer_note: result.reviewerNote,
       generated_for: draftBasisOf(ctx.facts, ctx.virtualDate),
+      // The validated draft with placeholders, kept so example letters can be rebuilt with other figures.
+      raw: result.rawDraft,
     };
     const validation = { passed: true, issues: [] as string[], attempts: result.attempts, ai_issues: result.aiIssues };
     const stored = await deps.store.setStepDraft(step.id, draft, validation).catch(() => false);

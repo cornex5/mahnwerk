@@ -98,7 +98,7 @@ function buildUserMessage(f: LetterFacts, lang: Lang): string {
 /** The model sometimes writes a line break as the two characters backslash and n; make it a real one. */
 const lineBreaks = (s: string): string => s.replace(/\\r\\n|\\n/g, "\n");
 
-function render(d: LetterDraft, values: Record<string, string>): { letter: LetterDraft; text: string } {
+export function render(d: LetterDraft, values: Record<string, string>): { letter: LetterDraft; text: string } {
   const fill = (s: string): string => lineBreaks(fillPlaceholders(s, values));
   const letter: LetterDraft = {
     subject: fill(d.subject).replace(/\n/g, " "),
