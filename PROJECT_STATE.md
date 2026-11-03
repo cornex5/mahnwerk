@@ -72,6 +72,7 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - Prizes of interest: Best Use of PayPal + AI (5000 USD), grand prizes, and AG Grid sponsor prizes (a project can win one main prize plus one sponsor prize). Winners may need a W-8BEN and are responsible for their own taxes.
 
 ## Remaining as of 2026-11-03 21:30 Berlin
-- Jonas: set GitHub repo description and topics (About gear; text in chat), take 3 README screenshots (landing, queue with a letter, case calculation), read Devpost text v3 and video script v2 in the project docs
+- Jonas: set GitHub repo description and topics (About gear; text in chat), read Devpost text v3 and video script v2 in the project docs
 - Jonas: Nov 8 20:00 AG Grid go/no-go, Nov 10 18:00 feature freeze, record and upload video (public YouTube, under 3 min, record on a day without sandbox reminders used), submit Nov 11 evening
 - Claude: judge walkthrough from a clean session, AI budget exhausted live test, "Sending..." hang (cause unknown), RSC prefetch 503 seen once, gitleaks check before freeze, look at case page, queue and new-invoice form by eye once screenshots work
+- README screenshots added (landing, dashboard, queue, case) on 2026-11-03

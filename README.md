@@ -12,6 +12,16 @@ Live demo: https://mahnwerk.vercel.app
 
 This is a hackathon demo. It is not legal advice and not a substitute for a lawyer. It runs on the PayPal sandbox only: no real money moves, no real email is sent, and all debtors and invoices are fictional.
 
+## Screenshots
+
+![Landing page with a worked example of the claim calculation](docs/screenshots/landing.png)
+
+![Dashboard of the example workspace](docs/screenshots/dashboard.png)
+
+![Approval queue with a stored Claude draft](docs/screenshots/queue.png)
+
+![Case page with the claim calculation](docs/screenshots/case.png)
+
 ## Try it as a judge
 
 No sign-up. Open https://mahnwerk.vercel.app and choose one of two paths.
