@@ -43,37 +43,46 @@ const SUBJECT: Record<LetterKind, Record<Lang, string>> = {
   mahnung1: { de: "1. Mahnung", en: "First formal reminder" },
   mahnung2: { de: "2. Mahnung", en: "Second formal reminder" },
   handover: { de: "Letzte Mahnung vor Abgabe", en: "Final notice before handover" },
-  fee_invoice: { de: "Rechnung ueber Verzugszinsen und Pauschale", en: "Invoice for default interest and flat fee" },
+  fee_invoice: { de: "Rechnung über Verzugszinsen und Pauschale", en: "Invoice for default interest and flat fee" },
 };
+
+/** 2026-09-30 becomes 30.09.2026 for German letters; other values pass through. */
+export function formatDate(iso: string, lang: Lang): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m || lang !== "de") return iso;
+  return `${m[3]}.${m[2]}.${m[1]}`;
+}
 
 function lines(f: LetterFacts): string[] {
   const m = (c: number) => formatEur(c, f.lang);
+  const due = formatDate(f.dueDate, f.lang);
+  const asOf = formatDate(f.virtualDate, f.lang);
   if (f.lang === "de") {
     const out = [
-      `Sehr geehrte Damen und Herren, sehr geehrte/r ${f.debtorName},`,
+      `Sehr geehrte Damen und Herren,`,
       "",
-      `zur Rechnung ${f.invoiceNumber} (faellig am ${f.dueDate}) ist zum ${f.virtualDate} noch offen:`,
+      `zur Rechnung ${f.invoiceNumber} an ${f.debtorName} (fällig am ${due}) ist zum ${asOf} noch offen:`,
     ];
     if (f.kind !== "fee_invoice" || f.openPrincipalCents > 0) out.push(`Hauptforderung: ${m(f.openPrincipalCents)}`);
     if (f.openInterestCents > 0) out.push(`Verzugszinsen: ${m(f.openInterestCents)}`);
-    if (f.openFeeCents > 0) out.push(`Verzugspauschale (BGB 288 Abs. 5): ${m(f.openFeeCents)}`);
+    if (f.openFeeCents > 0) out.push(`Verzugspauschale (§ 288 Abs. 5 BGB): ${m(f.openFeeCents)}`);
     out.push(`Gesamt: ${m(f.totalDueCents)}`, "");
-    if (f.kind === "reminder") out.push("Sicher haben Sie die Zahlung nur uebersehen. Bitte begleichen Sie den Betrag in den naechsten Tagen.");
+    if (f.kind === "reminder") out.push("Sicher haben Sie die Zahlung nur übersehen. Bitte begleichen Sie den Betrag in den nächsten Tagen.");
     if (f.kind === "mahnung1") out.push("Wir bitten Sie, den Gesamtbetrag innerhalb von 7 Tagen zu zahlen.");
     if (f.kind === "mahnung2") out.push("Bitte zahlen Sie den Gesamtbetrag innerhalb von 10 Tagen. Danach behalten wir uns weitere Schritte vor.");
     if (f.kind === "handover") out.push("Ohne Zahlung innerhalb von 14 Tagen geben wir die Forderung ab (gerichtliches Mahnverfahren oder Inkasso).");
     if (f.kind === "fee_invoice") out.push("Die Hauptforderung ist beglichen. Offen sind noch Verzugszinsen und gegebenenfalls die Pauschale.");
-    out.push("", "Automatisch berechnet, keine Rechtsberatung.", "", `Mit freundlichen Gruessen`, f.creditorName);
+    out.push("", "Automatisch berechnet, keine Rechtsberatung.", "", `Mit freundlichen Grüßen`, f.creditorName);
     return out;
   }
   const out = [
     `Dear ${f.debtorName},`,
     "",
-    `As of ${f.virtualDate}, the following is still open on invoice ${f.invoiceNumber} (due ${f.dueDate}):`,
+    `As of ${asOf}, the following is still open on invoice ${f.invoiceNumber} (due ${due}):`,
   ];
   if (f.kind !== "fee_invoice" || f.openPrincipalCents > 0) out.push(`Principal: ${m(f.openPrincipalCents)}`);
   if (f.openInterestCents > 0) out.push(`Default interest: ${m(f.openInterestCents)}`);
-  if (f.openFeeCents > 0) out.push(`Flat fee (BGB 288(5)): ${m(f.openFeeCents)}`);
+  if (f.openFeeCents > 0) out.push(`Flat fee (§ 288(5) BGB): ${m(f.openFeeCents)}`);
   out.push(`Total: ${m(f.totalDueCents)}`, "");
   if (f.kind === "reminder") out.push("This may simply have been overlooked. Please settle the amount in the next few days.");
   if (f.kind === "mahnung1") out.push("Please pay the total within 7 days.");
