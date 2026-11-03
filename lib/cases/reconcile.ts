@@ -101,9 +101,14 @@ export function remoteLedger(remote: PayPalInvoice, currency: string): RemoteLed
     if (amount <= 0) throw new ReconcileError(`Non-positive payment ${ref} on ${remote.id}`);
     push({ kind: "payment", amount_cents: amount, booked_on: toIsoDay(p.payment_date, `Payment ${ref}`), paypal_ref: ref });
   }
-  for (const r of remote.refunds?.transactions ?? []) {
-    const ref = r.refund_id ?? r.transaction_id;
-    if (!ref) throw new ReconcileError(`Refund without id on PayPal invoice ${remote.id}`);
+  const refundRows = remote.refunds?.transactions ?? [];
+  for (let i = 0; i < refundRows.length; i++) {
+    const r = refundRows[i];
+    // The sandbox returns external refunds without any id field. Refunds are append-only on a
+    // PayPal invoice, so the 1-based position is a stable key for the same invoice.
+    const loose = r as Record<string, unknown>;
+    const alt = typeof loose.payment_id === "string" && loose.payment_id ? loose.payment_id : undefined;
+    const ref = r.refund_id ?? r.transaction_id ?? alt ?? `${remote.id}:refund:${i + 1}`;
     const amount = moneyToCents(r.amount, currency);
     if (amount <= 0) throw new ReconcileError(`Non-positive refund ${ref} on ${remote.id}`);
     push({ kind: "refund", amount_cents: amount, booked_on: toIsoDay(r.refund_date, `Refund ${ref}`), paypal_ref: ref });

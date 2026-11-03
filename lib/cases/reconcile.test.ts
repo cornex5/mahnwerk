@@ -66,6 +66,20 @@ describe("pure helpers", () => {
     inv2.payments!.transactions![0].amount.value = "1000.001";
     expect(() => remoteLedger(inv2, "EUR")).toThrow(/2 decimals/);
   });
+
+  it("keys a refund without any id by its stable position on the invoice", () => {
+    const inv = remoteInvoice({
+      status: "PARTIALLY_REFUNDED",
+      payments: [{ id: "P1", date: "2026-11-01", cents: 100000 }],
+      refunds: [
+        { id: "R1", date: "2026-11-02", cents: 1000 },
+        { id: "R2", date: "2026-11-02", cents: 1000 },
+      ],
+    });
+    for (const r of inv.refunds!.transactions!) delete (r as Record<string, unknown>).refund_id;
+    const refs = remoteLedger(inv, "EUR").filter((e) => e.kind === "refund").map((e) => e.paypal_ref);
+    expect(refs).toEqual([`${inv.id}:refund:1`, `${inv.id}:refund:2`]);
+  });
 });
 
 describe("invoice reconciliation", () => {
