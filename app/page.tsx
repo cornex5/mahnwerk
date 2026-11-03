@@ -1,69 +1,114 @@
-import Image from "next/image";
+import { SiteHeader, GITHUB_URL } from "@/components/SiteChrome";
+import { StartButtons } from "@/components/StartButtons";
+import { DE_BASE_RATES, DE_RULESET } from "@/lib/rules/de";
+import { calculateClaim } from "@/lib/rules/engine";
+
+const EUR = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
+const eur = (c: number) => EUR.format(c / 100);
+
+// A worked example computed by the same rules engine the app uses (no AI, no network).
+const EXAMPLE = calculateClaim({
+  invoice: { principalCents: 200_000, dueDate: "2026-09-30", fixedCalendarDue: true, defaultWarningPrinted: true, debtorType: "business" },
+  ledger: [],
+  calcDate: "2026-11-20",
+  ruleSet: DE_RULESET,
+  baseRates: DE_BASE_RATES,
+});
+const EXAMPLE_RATE_BP = EXAMPLE.segments[0]?.rateBp ?? 0;
+
+const STEPS = [
+  { n: "1", title: "Rules engine", body: "Code decides default, interest, the 40 EUR flat fee and when the next step is due. Integer cents, tested against BGB 286 and 288.", tag: "Decides" },
+  { n: "2", title: "AI drafts", body: "Claude only writes wording. Amounts, dates and citations are placeholders filled by code, and every draft is validated or replaced by a template.", tag: "Words only" },
+  { n: "3", title: "Human approval", body: "Every outbound step waits in a queue. Nothing is sent, charged or escalated without your explicit click.", tag: "You decide" },
+  { n: "4", title: "PayPal sandbox", body: "Invoices, reminders and simulated payments run through PayPal Invoicing in the sandbox. No real money moves.", tag: "Executes" },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <SiteHeader>
+        <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-muted hover:text-ink">
+          GitHub
+        </a>
+      </SiteHeader>
+      <main id="main" className="pb-0">
+        <section className="mx-auto grid max-w-7xl gap-10 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:pt-16">
+          <div>
+            <p className="inline-block rounded-md border border-brand-line bg-brand-soft px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-brand">
+              German-law dunning engine
+            </p>
+            <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
+              Chase overdue invoices without guessing the law.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+              Mahnwerk watches your PayPal invoices and a deterministic rules engine decides when a debtor is in default, what interest and fees are owed, and which step comes next (BGB 286, 288). AI only drafts the wording, and a human approves every step before anything goes out.
+            </p>
+            <div className="mt-7">
+              <StartButtons />
+            </div>
+            <div role="note" className="mt-7 max-w-xl rounded-xl border border-warn-line bg-warn-soft p-4 text-sm">
+              <p className="font-semibold text-warn">Not legal advice. Sandbox only.</p>
+              <p className="mt-1">
+                This is a hackathon demo on the PayPal sandbox. No real money moves, no real email is sent, and every debtor and invoice is fictional. Do not rely on it for a real claim.
+              </p>
+            </div>
+          </div>
+
+          <div className="lg:pt-6">
+            <div className="rounded-2xl border border-line-strong bg-surface p-5 shadow-[6px_6px_0_var(--line)] sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">Worked example</p>
+                  <p className="mt-1 text-sm font-medium">Invoice due 30 Sep 2026, business debtor, on 20 Nov 2026</p>
+                </div>
+                <span className="rounded border-2 border-danger px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-danger [transform:rotate(4deg)]">In default</span>
+              </div>
+              <dl className="mt-5 space-y-2 bg-surface/90 text-sm">
+                <Row label="Principal" value={eur(200_000)} />
+                <Row label="Default start" value={EXAMPLE.defaultStart ? new Date(EXAMPLE.defaultStart + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "none"} />
+                <Row label={`Interest (${(EXAMPLE_RATE_BP / 100).toFixed(2)}% = base 1.52% + 9.00%)`} value={eur(EXAMPLE.interestAccruedCents)} />
+                <Row label="Flat fee (BGB 288(5))" value={eur(EXAMPLE.flatFeeCents)} />
+                <div className="flex items-baseline gap-2 border-t-2 border-ink pt-2 text-base font-semibold">
+                  <dt>Total owed</dt>
+                  <span className="leader" aria-hidden="true" />
+                  <dd className="num font-mono">{eur(EXAMPLE.totalDueCents)}</dd>
+                </div>
+              </dl>
+              <p className="mt-4 text-xs text-muted">Computed live by the rules engine, not by AI. Basiszinssatz {(DE_BASE_RATES[0].rateBp / 100).toFixed(2)}% from 1 Jul 2026 (Bundesbank).</p>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="how-h" className="border-y border-line bg-surface">
+          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+            <h2 id="how-h" className="text-[13px] font-semibold uppercase tracking-[0.1em] text-muted">
+              How it works
+            </h2>
+            <ol className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {STEPS.map((s) => (
+                <li key={s.n} className="rounded-xl border border-line bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="num flex h-7 w-7 items-center justify-center rounded-full bg-ink font-mono text-xs font-semibold text-background">{s.n}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-brand">{s.tag}</span>
+                  </div>
+                  <h3 className="mt-4 font-semibold">{s.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
       </main>
+    </>
+  );
+}
+
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt>{label}</dt>
+      <span className="leader" aria-hidden="true" />
+      <dd className={`num ${mono ? "font-mono text-[13px]" : "font-mono"}`}>{value}</dd>
     </div>
   );
 }

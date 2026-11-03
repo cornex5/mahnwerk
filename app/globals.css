@@ -1,26 +1,132 @@
 @import "tailwindcss";
 
+/* Mahnwerk design tokens: warm paper, ink and a deep teal. Red is reserved for default and danger. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #f3efe6;
+  --foreground: #14181d;
+  --surface: #fffdf8;
+  --surface-2: #f8f4ea;
+  --line: #e4dece;
+  --line-strong: #cfc8b4;
+  --muted: #5a636c;
+  --brand: #0b5c55;
+  --brand-hover: #094a45;
+  --brand-fg: #ffffff;
+  --brand-soft: #dff0ea;
+  --brand-line: #a9d3c8;
+  --danger: #a8281b;
+  --danger-soft: #fbe6e1;
+  --danger-line: #eeb3a9;
+  --warn: #7c5200;
+  --warn-soft: #fbf0d3;
+  --warn-line: #e8cd8d;
+  --info: #234f8c;
+  --info-soft: #e1eaf7;
+  --info-line: #b4c9e8;
+  --ai: #58379b;
+  --ai-soft: #ece6f8;
+  --ai-line: #cdbfee;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0f11;
+    --foreground: #e9edef;
+    --surface: #131a1d;
+    --surface-2: #192226;
+    --line: #26323a;
+    --line-strong: #364652;
+    --muted: #97a4ac;
+    --brand: #4fc4b0;
+    --brand-hover: #6fd3c1;
+    --brand-fg: #04211d;
+    --brand-soft: #112f2b;
+    --brand-line: #1f5750;
+    --danger: #ff9082;
+    --danger-soft: #3a1b18;
+    --danger-line: #6b2f29;
+    --warn: #f2c36b;
+    --warn-soft: #382b10;
+    --warn-line: #6a521d;
+    --info: #94b8f4;
+    --info-soft: #172a46;
+    --info-line: #2d4c7c;
+    --ai: #bda7f7;
+    --ai-soft: #271f45;
+    --ai-line: #483a7d;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-ink: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --color-ai-line: var(--ai-line);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: light dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Ledger rule: a dotted leader line between a label and its amount. */
+.leader {
+  flex: 1;
+  border-bottom: 1px dotted var(--line-strong);
+  transform: translateY(-4px);
+  min-width: 12px;
+}
+
+/* A faint ruled-paper texture for the hero only. */
+.ruled {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--line) 31px, var(--line) 32px);
+}
+
+dialog::backdrop {
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin,
+  .animate-pulse {
+    animation: none;
+  }
 }
