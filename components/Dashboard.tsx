@@ -7,16 +7,16 @@ import { CopilotPanel } from "./CopilotPanel";
 import { DemoClock } from "./DemoClock";
 import { eur } from "./lib/format";
 import { NewInvoiceModal } from "./NewInvoiceModal";
-import { Button, Card, Dialog, EmptyState, SectionTitle } from "./ui";
+import { Button, Dialog, EmptyState, SectionTitle } from "./ui";
 import { useWorkspace } from "./WorkspaceProvider";
 
-function Stat({ label, cents, sub, tone }: { label: string; cents: number; sub: string; tone?: "danger" | "brand" }) {
+function Figure({ label, cents, sub, tone }: { label: string; cents: number; sub: string; tone?: "danger" | "brand" }) {
   return (
-    <Card className="p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{label}</p>
-      <p className={`num mt-2 font-mono text-xl font-semibold sm:text-2xl ${tone === "danger" ? "text-danger" : tone === "brand" ? "text-brand" : ""}`}>{eur(cents)}</p>
-      <p className="mt-1 text-xs text-muted">{sub}</p>
-    </Card>
+    <div>
+      <p className="text-sm text-muted">{label}</p>
+      <p className={`num font-mono text-xl font-semibold ${tone === "danger" ? "text-danger" : tone === "brand" ? "text-brand" : ""}`}>{eur(cents)}</p>
+      <p className="text-xs text-muted">{sub}</p>
+    </div>
   );
 }
 
@@ -46,11 +46,15 @@ export function Dashboard() {
 
         <DemoClock />
 
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <Stat label="Open" cents={totals.openCents} sub={plural(totals.openCount, "active case")} />
-          <Stat label="Overdue" cents={totals.overdueCents} sub={plural(totals.overdueCount, "case")} tone={totals.overdueCount > 0 ? "danger" : undefined} />
-          <Stat label="In dunning" cents={totals.dunningCents} sub={plural(totals.dunningCount, "case")} />
-          <Stat label="Collected" cents={totals.collectedCents} sub="payments net of refunds" tone="brand" />
+        <div className="flex flex-wrap items-end gap-x-12 gap-y-4 border-y border-line py-5">
+          <div>
+            <p className="text-sm text-muted">Owed now</p>
+            <p className="num font-mono text-4xl font-semibold sm:text-5xl">{eur(totals.openCents)}</p>
+            <p className="text-xs text-muted">{plural(totals.openCount, "active case")}</p>
+          </div>
+          <Figure label="Overdue" cents={totals.overdueCents} sub={plural(totals.overdueCount, "case")} tone={totals.overdueCount > 0 ? "danger" : undefined} />
+          <Figure label="In dunning" cents={totals.dunningCents} sub={plural(totals.dunningCount, "case")} />
+          <Figure label="Collected" cents={totals.collectedCents} sub="payments net of refunds" tone="brand" />
         </div>
 
         {proposed.length > 0 && (

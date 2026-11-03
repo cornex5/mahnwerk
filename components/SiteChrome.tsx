@@ -6,10 +6,9 @@ export const GITHUB_URL = "https://github.com/cornex5/mahnwerk";
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <Link href="/" className={`inline-flex items-center gap-2.5 font-semibold tracking-tight ${className}`} aria-label="Mahnwerk home">
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-        <rect width="28" height="28" rx="7" fill="var(--brand)" />
-        <path d="M7 20.5h4v-4H7zM12 20.5h4v-8.5h-4zM17 20.5h4V7.5h-4z" fill="var(--brand-fg)" />
-      </svg>
+      <span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-line font-mono text-base text-brand">
+        §
+      </span>
       <span className="text-[17px]">Mahnwerk</span>
     </Link>
   );

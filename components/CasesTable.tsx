@@ -43,7 +43,7 @@ export function CasesTable({ views, workspaceId, empty }: { views: CaseView[]; w
           <div className="hidden overflow-x-auto rounded-xl border border-line md:block">
             <table className="w-full min-w-[760px] text-sm">
               <caption className="sr-only">Dunning cases</caption>
-              <thead className="bg-surface-2 text-left text-[11px] uppercase tracking-wide text-muted">
+              <thead className="bg-surface-2 text-left text-xs font-medium text-muted">
                 <tr>
                   <th scope="col" className="px-4 py-2.5 font-semibold">Debtor</th>
                   <th scope="col" className="px-3 py-2.5 font-semibold">Invoice</th>

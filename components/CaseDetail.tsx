@@ -49,7 +49,7 @@ export function CaseDetail({ caseId }: { caseId: string }) {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Owed at {fmtDate(virtualDate)}</p>
+            <p className="text-xs font-medium text-muted">Owed at {fmtDate(virtualDate)}</p>
             <p className="num font-mono text-3xl font-semibold">{eur(view.owedCents)}</p>
             <p className="text-xs text-muted">
               of {eur(view.invoice.principal_cents)} principal{view.daysOverdue > 0 ? ` · ${view.daysOverdue} days overdue` : ""}
@@ -87,7 +87,7 @@ export function CaseDetail({ caseId }: { caseId: string }) {
               <SectionTitle>Ledger</SectionTitle>
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full min-w-[420px] text-sm">
-                  <thead className="text-left text-[11px] uppercase tracking-wide text-muted">
+                  <thead className="text-left text-xs font-medium text-muted">
                     <tr>
                       <th scope="col" className="py-1.5 font-semibold">Booked</th>
                       <th scope="col" className="py-1.5 font-semibold">Type</th>

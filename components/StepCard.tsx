@@ -173,7 +173,7 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
         </div>
         {amount > 0 && (
           <div className="text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{step.kind === "fee_invoice" ? "To invoice" : "Owed in letter"}</p>
+            <p className="text-xs font-medium text-muted">{step.kind === "fee_invoice" ? "To invoice" : "Owed in letter"}</p>
             <p className="num font-mono text-lg font-semibold">{eur(amount)}</p>
           </div>
         )}
@@ -202,7 +202,7 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
 
       {why && (
         <div className="mt-3 space-y-2 rounded-lg border border-line p-3 text-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Rules engine facts</p>
+          <p className="text-xs font-medium text-muted">Rules engine facts</p>
           <ul className="list-disc space-y-1 pl-5">
             {whyNowLines(step, view, virtualDate).map((l) => (
               <li key={l}>{l}</li>

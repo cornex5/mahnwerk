@@ -17,10 +17,10 @@ const EXAMPLE = calculateClaim({
 const EXAMPLE_RATE_BP = EXAMPLE.segments[0]?.rateBp ?? 0;
 
 const STEPS = [
-  { n: "1", title: "Rules engine", body: "Code decides default, interest, the 40 EUR flat fee and when the next step is due. Integer cents, tested against BGB 286 and 288.", tag: "Decides" },
-  { n: "2", title: "AI drafts", body: "Claude writes the wording. Code fills in amounts, dates and citations, checks the draft, and swaps in a template if the check fails.", tag: "Words only" },
-  { n: "3", title: "Human approval", body: "Every outbound step waits in a queue until you approve it.", tag: "You decide" },
-  { n: "4", title: "PayPal sandbox", body: "Invoices, reminders and simulated payments run through PayPal Invoicing in the sandbox. No real money moves.", tag: "Executes" },
+  { title: "Code decides.", body: "Default, interest, the 40 EUR flat fee and the next step, in integer cents. Tested against BGB 286 and 288." },
+  { title: "Claude writes.", body: "Code fills in every amount, date and citation, checks the draft, and swaps in a template if the check fails." },
+  { title: "You approve.", body: "Each outbound step waits in a queue until you approve it." },
+  { title: "PayPal sandbox sends.", body: "Invoices, reminders and simulated payments run through PayPal Invoicing. No real money moves." },
 ];
 
 export default function Home() {
@@ -34,10 +34,7 @@ export default function Home() {
       <main id="main" className="pb-0">
         <section className="mx-auto grid max-w-7xl gap-10 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:pt-16">
           <div>
-            <p className="inline-block rounded-md border border-brand-line bg-brand-soft px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-brand">
-              German-law dunning engine
-            </p>
-            <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
+            <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
               Chase overdue invoices without guessing the law.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
@@ -55,13 +52,13 @@ export default function Home() {
           </div>
 
           <div className="lg:pt-6">
-            <div className="rounded-2xl border border-line-strong bg-surface p-5 shadow-[6px_6px_0_var(--line)] sm:p-6">
+            <div className="rounded-2xl border border-line-strong bg-surface p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">Worked example</p>
+                  <p className="text-xs font-medium text-muted">Worked example</p>
                   <p className="mt-1 text-sm font-medium">Invoice due 30 Sep 2026, business debtor, on 20 Nov 2026</p>
                 </div>
-                <span className="rounded border-2 border-danger px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-danger [transform:rotate(4deg)]">In default</span>
+                <span className="text-sm font-medium text-danger">In default</span>
               </div>
               <dl className="mt-5 space-y-2 bg-surface/90 text-sm">
                 <Row label="Principal" value={eur(200_000)} />
@@ -74,29 +71,20 @@ export default function Home() {
                   <dd className="num font-mono">{eur(EXAMPLE.totalDueCents)}</dd>
                 </div>
               </dl>
-              <p className="mt-4 text-xs text-muted">Computed live by the rules engine, not by AI. Basiszinssatz {(DE_BASE_RATES[0].rateBp / 100).toFixed(2)}% from 1 Jul 2026 (Bundesbank).</p>
+              <p className="mt-4 text-xs text-muted">Computed live by the rules engine. Basiszinssatz {(DE_BASE_RATES[0].rateBp / 100).toFixed(2)}% from 1 Jul 2026 (Bundesbank).</p>
             </div>
           </div>
         </section>
 
-        <section aria-labelledby="how-h" className="border-y border-line bg-surface">
-          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-            <h2 id="how-h" className="text-[13px] font-semibold uppercase tracking-[0.1em] text-muted">
-              How it works
-            </h2>
-            <ol className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {STEPS.map((s) => (
-                <li key={s.n} className="rounded-xl border border-line bg-surface-2 p-5">
-                  <div className="flex items-center justify-between">
-                    <span className="num flex h-7 w-7 items-center justify-center rounded-full bg-ink font-mono text-xs font-semibold text-background">{s.n}</span>
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-brand">{s.tag}</span>
-                  </div>
-                  <h3 className="mt-4 font-semibold">{s.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.body}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
+        <section aria-label="How it works" className="border-t border-line">
+          <ol className="mx-auto grid max-w-7xl gap-x-8 gap-y-6 px-4 py-8 text-sm leading-relaxed text-muted sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+            {STEPS.map((s) => (
+              <li key={s.title}>
+                <strong className="block text-ink">{s.title}</strong>
+                {s.body}
+              </li>
+            ))}
+          </ol>
         </section>
       </main>
     </>

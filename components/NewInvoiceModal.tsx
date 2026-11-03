@@ -84,7 +84,7 @@ function InvoiceForm({ onClose }: { onClose: () => void }) {
           <input id="ni-desc" className={inputClass} maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} disabled={busy} placeholder="Logo design, November" />
         </Field>
         <fieldset className="space-y-2 rounded-lg border border-line p-3">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Legal facts on the invoice</legend>
+          <legend className="px-1 text-xs font-medium text-muted">Legal facts on the invoice</legend>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--brand)]" checked={fixedCalendarDue} onChange={(e) => setFixed(e.target.checked)} disabled={busy} />
             <span>Fixed calendar due date (BGB 286(2) no. 1): default starts the day after the due date.</span>

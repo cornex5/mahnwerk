@@ -1,60 +1,31 @@
 @import "tailwindcss";
 
-/* Mahnwerk design tokens: warm paper, ink and a deep teal. Red is reserved for default and danger. */
+/* Mahnwerk design tokens: dark green-black, off-white text and one teal. Red is reserved for default and danger. */
 :root {
-  --background: #f3efe6;
-  --foreground: #14181d;
-  --surface: #fffdf8;
-  --surface-2: #f8f4ea;
-  --line: #e4dece;
-  --line-strong: #cfc8b4;
-  --muted: #5a636c;
-  --brand: #0b5c55;
-  --brand-hover: #094a45;
-  --brand-fg: #ffffff;
-  --brand-soft: #dff0ea;
-  --brand-line: #a9d3c8;
-  --danger: #a8281b;
-  --danger-soft: #fbe6e1;
-  --danger-line: #eeb3a9;
-  --warn: #7c5200;
-  --warn-soft: #fbf0d3;
-  --warn-line: #e8cd8d;
-  --info: #234f8c;
-  --info-soft: #e1eaf7;
-  --info-line: #b4c9e8;
-  --ai: #58379b;
-  --ai-soft: #ece6f8;
-  --ai-line: #cdbfee;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b0f11;
-    --foreground: #e9edef;
-    --surface: #131a1d;
-    --surface-2: #192226;
-    --line: #26323a;
-    --line-strong: #364652;
-    --muted: #97a4ac;
-    --brand: #4fc4b0;
-    --brand-hover: #6fd3c1;
-    --brand-fg: #04211d;
-    --brand-soft: #112f2b;
-    --brand-line: #1f5750;
-    --danger: #ff9082;
-    --danger-soft: #3a1b18;
-    --danger-line: #6b2f29;
-    --warn: #f2c36b;
-    --warn-soft: #382b10;
-    --warn-line: #6a521d;
-    --info: #94b8f4;
-    --info-soft: #172a46;
-    --info-line: #2d4c7c;
-    --ai: #bda7f7;
-    --ai-soft: #271f45;
-    --ai-line: #483a7d;
-  }
+  --background: #0f1514;
+  --foreground: #e4ebe8;
+  --surface: #161e1c;
+  --surface-2: #1b2523;
+  --line: #26312f;
+  --line-strong: #3a4845;
+  --muted: #8d9c98;
+  --brand: #3fb8a6;
+  --brand-hover: #5cc9b9;
+  --brand-fg: #05201c;
+  --brand-soft: #12302b;
+  --brand-line: #1f5750;
+  --danger: #ff9082;
+  --danger-soft: #3a1b18;
+  --danger-line: #6b2f29;
+  --warn: #f2c36b;
+  --warn-soft: #382b10;
+  --warn-line: #6a521d;
+  --info: #94b8f4;
+  --info-soft: #172a46;
+  --info-line: #2d4c7c;
+  --ai: #8fb8de;
+  --ai-soft: #162838;
+  --ai-line: #2c4a66;
 }
 
 @theme inline {
@@ -82,18 +53,18 @@
   --color-ai: var(--ai);
   --color-ai-soft: var(--ai-soft);
   --color-ai-line: var(--ai-line);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -113,11 +84,6 @@ body {
   border-bottom: 1px dotted var(--line-strong);
   transform: translateY(-4px);
   min-width: 12px;
-}
-
-/* A faint ruled-paper texture for the hero only. */
-.ruled {
-  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--line) 31px, var(--line) 32px);
 }
 
 dialog::backdrop {

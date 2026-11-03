@@ -39,7 +39,7 @@ export function DemoClock() {
     <Card className="p-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Demo clock</p>
+          <p className="text-xs font-medium text-muted">Demo clock</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
             <span className="num font-mono text-2xl font-semibold">{fmtDate(virtualDate)}</span>
             <span className="text-sm text-muted">

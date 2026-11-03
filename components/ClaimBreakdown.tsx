@@ -78,7 +78,7 @@ export function ClaimBreakdown({ view }: { view: CaseView }) {
             <caption className="mb-2 text-left text-xs text-muted">
               Interest per period: base rate + margin ({pct(margin)} {type === "consumer" ? cit.interestConsumer : cit.interestBusiness}; base rate {cit.baseRate}). 365-day year.
             </caption>
-            <thead className="text-left text-[11px] uppercase tracking-wide text-muted">
+            <thead className="text-left text-xs font-medium text-muted">
               <tr>
                 <th scope="col" className="py-1.5 pr-3 font-semibold">Period</th>
                 <th scope="col" className="py-1.5 pr-3 text-right font-semibold">Days</th>

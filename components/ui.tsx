@@ -70,7 +70,7 @@ const TONE: Record<Tone, string> = {
 
 export function Badge({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide", TONE[tone], className)}>
+    <span className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium", TONE[tone], className)}>
       {children}
     </span>
   );
@@ -100,7 +100,7 @@ export function Card({ className, children, as: Tag = "section" }: { className?:
 export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">{children}</h2>
+      <h2 className="text-sm font-semibold text-muted">{children}</h2>
       {right}
     </div>
   );
