@@ -15,6 +15,11 @@ interface Turn {
 
 const SUGGESTIONS = ["Which cases need action today?", "What do we owe in interest across all cases?", "Propose the next step for every overdue case."];
 
+/** The model is told to use plain text; this strips any markdown emphasis that slips through. */
+function plainText(s: string): string {
+  return s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/(^|\s)\*(\S[^*]*?)\*(?=\s|$)/g, "$1$2").replace(/`([^`]+)`/g, "$1");
+}
+
 function pickAnswer(data: unknown): { answer: string; proposed: string[]; note?: string } {
   const d = (data ?? {}) as Record<string, unknown>;
   const answer = [d.answer, d.text, d.message].find((v): v is string => typeof v === "string" && v.trim() !== "") ?? "The copilot returned no answer.";
@@ -101,7 +106,7 @@ export function CopilotPanel() {
         {[...turns].reverse().map((t, i) => (
           <div key={turns.length - i} className="space-y-2 border-t border-line pt-3">
             <p className="text-sm font-medium">{t.question}</p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{t.answer}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{plainText(t.answer)}</p>
             {t.note && <p className="text-xs text-muted">{t.note}</p>}
             {t.proposedStepIds.length > 0 && (
               <Notice tone="brand" title={`${t.proposedStepIds.length} step${t.proposedStepIds.length === 1 ? "" : "s"} proposed`}>
