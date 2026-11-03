@@ -24,6 +24,7 @@ import {
   type ServiceDeps,
 } from "./context";
 import { STEP_SPECS, claimAt, isDunningKind, planNextStage, type DunningKind, type StagePlan } from "./claims";
+import { draftFingerprint } from "./draftFingerprint";
 import { letterFor, templateLetter, type Letter, type LetterFacts } from "./letters";
 import { draftBasisMatches, generateStepDraft } from "./stepDraft";
 import { isDefinitivePayPalFailure, payPalIssue, safeMessage } from "./paypalErrors";
@@ -184,8 +185,17 @@ async function loadStepForMutation(deps: ServiceDeps, actorUid: string, stepId: 
   return { step, ws };
 }
 
-export async function approveStep(deps: ServiceDeps, actorUid: string, stepId: string): Promise<{ step: FullStepRow; changed: boolean }> {
-  const { ws } = await loadStepForMutation(deps, actorUid, stepId);
+export async function approveStep(
+  deps: ServiceDeps,
+  actorUid: string,
+  stepId: string,
+  opts: { draftFingerprint?: string } = {},
+): Promise<{ step: FullStepRow; changed: boolean }> {
+  const { step, ws } = await loadStepForMutation(deps, actorUid, stepId);
+  // The approval covers the wording the person saw. If a new draft arrived meanwhile, ask again.
+  if (opts.draftFingerprint && step.status === "proposed" && opts.draftFingerprint !== draftFingerprint(step.draft, step.validation)) {
+    throw new ServiceError("conflict", "The wording of this letter changed while you were looking at it. Please read the new text and approve again.");
+  }
   const r = await deps.store.decideStep({ stepId, decision: "approve", actorUid, virtualDate: virtualDateFor(ws, deps.now()), note: null });
   if (r === "not_found") throw new ServiceError("not_found", "Step not found");
   if (r.startsWith("invalid:")) {

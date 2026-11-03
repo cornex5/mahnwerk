@@ -3,6 +3,7 @@ import { ServiceError } from "./errors";
 import { createAndSendInvoice } from "./invoices";
 import { planNextStage } from "./claims";
 import { simulate } from "./simulator";
+import { draftFingerprint } from "./draftFingerprint";
 import { approveStep, assertApproved, executeStep, proposeNextStep, refreshProposals, rejectStep } from "./steps";
 import { OTHER_USER, USER, apiError, makeServiceWorld, type ServiceWorld } from "./testkit";
 import { advanceClock } from "./workspaces";
@@ -96,6 +97,21 @@ describe("approval", () => {
     expect(stepOf(w, s.id)).toMatchObject({ status: "approved", approved_by: USER });
     expect(stepOf(w, s.id).approved_at).toBeTruthy();
     expect(w.store.audit.filter((x) => x.action === "step.approved")).toHaveLength(1);
+  });
+
+  it("refuses an approval for wording that changed since it was shown, and accepts the current fingerprint", async () => {
+    const w = await makeServiceWorld();
+    const caseId = await newCase(w);
+    await advanceClock(w.deps, w.ws.id, USER, 8);
+    const s = await proposeAt(w, caseId);
+    const shown = draftFingerprint(stepOf(w, s.id).draft, stepOf(w, s.id).validation);
+    // An AI draft arrives after the page was rendered.
+    await w.store.setStepDraft(s.id, { subject: "S", body: "New wording", source: "ai" }, { passed: true, issues: [] });
+    expect(await errCode(approveStep(w.deps, USER, s.id, { draftFingerprint: shown }))).toBe("conflict");
+    expect(stepOf(w, s.id).status).toBe("proposed");
+    const now = draftFingerprint(stepOf(w, s.id).draft, stepOf(w, s.id).validation);
+    expect(now).not.toBe(shown);
+    expect((await approveStep(w.deps, USER, s.id, { draftFingerprint: now })).changed).toBe(true);
   });
 
   it("only the owner may approve, reject or execute", async () => {

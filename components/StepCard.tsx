@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Letter } from "@/lib/services/letters";
+import { draftFingerprint } from "@/lib/services/draftFingerprint";
 import { ApiError, apiPost, errorMessage } from "./lib/api";
 import type { CaseView } from "./lib/claim";
 import { eur, fmtDate, fmtTs, SENT_VIA_LABEL, STEP_LABEL, STEP_STATUS_LABEL } from "./lib/format";
@@ -79,7 +80,7 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
     setDone(null);
     setPhase("approving");
     try {
-      await apiPost(`/api/steps/${step.id}/approve`, {});
+      await apiPost(`/api/steps/${step.id}/approve`, { draftFingerprint: draftFingerprint(step.draft, step.validation) });
     } catch (err) {
       setError(errorMessage(err));
       setPhase(null);

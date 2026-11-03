@@ -22,6 +22,9 @@ export const CreateInvoiceBody = z.strictObject({
 
 export const EmptyBody = z.strictObject({});
 
+/** Approve body: the fingerprint of the wording the person saw (see draftFingerprint). Optional for API callers. */
+export const ApproveBody = z.strictObject({ draftFingerprint: z.string().trim().max(64).optional() });
+
 export const RejectStepBody = z.strictObject({ note: z.string().trim().max(500).optional() });
 
 export const SimulateBody = z.strictObject({
