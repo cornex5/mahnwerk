@@ -39,7 +39,7 @@ export const REVIEWER_NOTE = "Automatically drafted from rules engine figures. R
 const KIND_BRIEF: Record<LetterKind, string> = {
   reminder: "A friendly first payment reminder (Zahlungserinnerung). Polite, assumes an oversight, no legal escalation.",
   mahnung1: "A first formal payment demand (Mahnung). Firm and factual. States the default position as given in the facts.",
-  mahnung2: "A second formal payment demand (zweite Mahnung). Firmer, lists the open amounts, still no escalation beyond the demand.",
+  mahnung2: "A second formal payment demand (zweite Mahnung). Firmer, lists the open amounts, still no escalation beyond the demand. The subject must say that this is the second Mahnung (zweite Mahnung).",
   handover_notice:
     "A final demand that announces handing the claim to a collection agency or law firm or starting the court dunning procedure (gerichtliches Mahnverfahren) if unpaid by the deadline.",
 };
@@ -98,13 +98,17 @@ function buildUserMessage(f: LetterFacts, lang: Lang): string {
 /** The model sometimes writes a line break as the two characters backslash and n; make it a real one. */
 const lineBreaks = (s: string): string => s.replace(/\\r\\n|\\n/g, "\n");
 
+/** A sign-off written on one line ("Mit freundlichen Grüßen, {{CREDITOR}}") gets its own line for the name. */
+const signOff = (s: string): string =>
+  s.replace(/^([^\n]*?),\s+(\{\{CREDITOR\}\})\s*$/, (_m, phrase: string, name: string) => `${phrase}${/^Mit freundlichen/i.test(phrase) ? "" : ","}\n${name}`);
+
 export function render(d: LetterDraft, values: Record<string, string>): { letter: LetterDraft; text: string } {
   const fill = (s: string): string => lineBreaks(fillPlaceholders(s, values));
   const letter: LetterDraft = {
     subject: fill(d.subject).replace(/\n/g, " "),
     greeting: fill(d.greeting),
     paragraphs: d.paragraphs.map(fill),
-    closing: fill(d.closing),
+    closing: fill(signOff(d.closing)),
   };
   return { letter, text: [letter.greeting, ...letter.paragraphs, letter.closing].join("\n\n") };
 }

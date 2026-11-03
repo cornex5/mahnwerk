@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DE_BASE_RATES, DE_RULESET } from "../rules/de";
 import { calculateClaim } from "../rules/engine";
-import { draftLetter, REVIEWER_NOTE } from "./draft";
+import { draftLetter, render, REVIEWER_NOTE } from "./draft";
 import { fillPlaceholders, formatDate, formatEur, LETTER_KINDS, letterFactsFromCalc, type Lang, type LetterFacts } from "./letterFacts";
 import { templateLetter } from "./templates";
 import { FakeModel, fakeGateway, textResponse, toolResponse } from "./testing/fakeModel";
@@ -322,5 +322,14 @@ describe("templates", () => {
     for (const kind of ["reminder", "mahnung1", "mahnung2"] as const) {
       expect(JSON.stringify(templateLetter(facts({ kind }), "de"))).not.toMatch(/Inkasso|Mahnverfahren/);
     }
+  });
+});
+
+describe("sign-off line break", () => {
+  it("puts the creditor on its own line", () => {
+    const d = { subject: "S", greeting: "G", paragraphs: ["a {{TOTAL}}", "b"], closing: "Mit freundlichen Grüßen, {{CREDITOR}}" };
+    const values = { TOTAL: "1 EUR", CREDITOR: "Acme" };
+    expect(render(d, values).letter.closing).toBe("Mit freundlichen Grüßen\nAcme");
+    expect(render({ ...d, closing: "Kind regards, {{CREDITOR}}" }, values).letter.closing).toBe("Kind regards,\nAcme");
   });
 });
