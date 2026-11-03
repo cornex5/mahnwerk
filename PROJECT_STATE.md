@@ -36,7 +36,12 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - [x] Supabase project mahnwerk (eu-central-1, ref rhelfhiiohajafwnkxhs) and Vercel project mahnwerk created, non-secret env set
 - [x] Supabase schema applied (0001 init, 0002 one fee_invoice step per case)
 - [x] PayPal REST client (lib/paypal), state machine and reconciler (lib/cases), webhook route (app/api/webhooks/paypal); 106 tests pass offline, typecheck, eslint and next build clean
-- [ ] Set SUPABASE_SERVICE_ROLE_KEY and PAYPAL_WEBHOOK_ID in Vercel, register the webhook URL in the PayPal app
+- [x] Env vars and PayPal webhook set by Jonas
+- [x] Migrations 0003, 0004 applied; golden workspace seeded (88409d86-81a3-439c-8f01-17ad6ff111c3)
+- [x] Service layer, AI layer (draft, explain, copilot, classify), UI, deployed on Vercel (mahnwerk.vercel.app)
+- [x] Live E2E on sandbox verified: demo workspace, invoice create/send, remind, partial and full payment, PAID webhooks, dispute pause/resume, injection-safe classify, copilot, partial and full refund (fixed id-less refund rows)
+- [ ] Still to test: golden read-only behaviors, mahnung1/2 and fee_invoice execution, reminder quota fallback, AI budget exhaustion, expired workspace, RSC prefetch 503 seen once
+- [ ] Known: Sonnet 5.5 rejects forced tool_choice (client sends auto plus instruction); golden workspace shares one 40-call AI budget; German template letters use ASCII transliteration
 - [ ] Deployed skeleton, Devpost draft (by Nov 5)
 
 ## Open items

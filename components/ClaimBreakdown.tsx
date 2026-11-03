@@ -120,7 +120,7 @@ export function ClaimBreakdown({ view }: { view: CaseView }) {
       </div>
       {claim.refundCappedCents > 0 && (
         <Notice tone="warn" className="mt-3" title="Refund needs review">
-          A refund of {eur(claim.refundCappedCents)} exceeded the open claim and was capped.
+          {eur(claim.refundCappedCents)} was refunded after the claim was already settled. The claim stays at zero and is not reopened. Please check whether the refund is intended.
         </Notice>
       )}
       <ul className="mt-4 space-y-1 text-xs text-muted">
