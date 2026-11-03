@@ -59,3 +59,10 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - Refund reduces the claim (credit note), never reopens principal or interest; partial refund after payment is flagged for review.
 - Paid case with accrued interest or fee still owed closes as closed_paid and proposes a fee_invoice step in the approval queue (nothing sent automatically).
 - Mahnwerk is public at mahnwerk.vercel.app (Vercel protection off, sandbox data only).
+
+## Devpost rules read 2026-11-03 (Jonas pasted the full page)
+- Eligibility: adults, individuals allowed, Germany not excluded. Eligibility is settled, no early submission needed (drafts can be saved on Devpost until the deadline).
+- Required: text description, working demo (hosted URL or run instructions), public repo with detectable open source license in the About section (MIT detected), public YouTube video under 3 minutes with no third-party trademarks or copyrighted music, all in English.
+- Testing: the project must stay available free of charge and without restriction until the judging period ends (Dec 15 2026; winners about Dec 21). Keep Supabase, Vercel and the Anthropic key alive until then. Do not delete the Supabase project before Dec 21.
+- Judging: stage 1 pass/fail on fit (PayPal and AI used), stage 2 five equal criteria: Technological Implementation, Design, Potential Impact, Innovation, Presentation. Judges may use automated AI analysis, so README and text must stand alone.
+- Prizes of interest: Best Use of PayPal + AI (5000 USD), grand prizes, and AG Grid sponsor prizes (a project can win one main prize plus one sponsor prize). Winners may need a W-8BEN and are responsible for their own taxes.
