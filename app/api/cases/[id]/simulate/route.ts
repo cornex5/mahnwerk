@@ -5,6 +5,8 @@ import { SimulateBody } from "@/lib/api/schemas";
 import { routeDeps } from "@/lib/api/serverDeps";
 import { simulate } from "@/lib/services/simulator";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request, ctx: RouteContext<"/api/cases/[id]/simulate">): Promise<Response> {
   const { id } = await ctx.params;
   return handleRoute(routeDeps, { bucket: "paypal_write", body: SimulateBody }, ({ userId, body, services }) =>

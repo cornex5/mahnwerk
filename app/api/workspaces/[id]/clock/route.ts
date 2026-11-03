@@ -6,6 +6,8 @@ import { routeDeps } from "@/lib/api/serverDeps";
 import { refreshProposals } from "@/lib/services/steps";
 import { advanceClock } from "@/lib/services/workspaces";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request, ctx: RouteContext<"/api/workspaces/[id]/clock">): Promise<Response> {
   const { id } = await ctx.params;
   return handleRoute(routeDeps, { bucket: "mutate", body: AdvanceClockBody }, async ({ userId, body, services }) => {

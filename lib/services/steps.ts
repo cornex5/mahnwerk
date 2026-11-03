@@ -168,12 +168,9 @@ export async function refreshProposals(deps: ServiceDeps, workspaceId: string): 
   const ws = await loadWorkspace(deps, workspaceId);
   if (ws.kind === "golden") return [];
   const cases = await deps.store.listCases(workspaceId);
-  const out: ProposalResult[] = [];
-  for (const c of cases) {
-    if (isClosed(c.state) || c.state === "paused_dispute" || c.state === "handover_ready") continue;
-    out.push(await proposeNextStep(deps, c.id));
-  }
-  return out;
+  // Cases are independent, and each proposal waits for its AI draft, so run them side by side.
+  const active = cases.filter((c) => !(isClosed(c.state) || c.state === "paused_dispute" || c.state === "handover_ready"));
+  return Promise.all(active.map((c) => proposeNextStep(deps, c.id)));
 }
 
 // ------------------------------------------------------------------ approve / reject

@@ -17,7 +17,7 @@ import type { FullCaseRow, FullInvoiceRow, FullStepRow, WorkspaceRow } from "./s
 export { DEADLINE_DAYS, draftBasisOf };
 export type { DraftBasis };
 
-export const DEFAULT_DRAFT_TIMEOUT_MS = 8_000;
+export const DEFAULT_DRAFT_TIMEOUT_MS = 30_000;
 
 const AI_KIND: Record<DunningKind, AiLetterKind> = { reminder: "reminder", mahnung1: "mahnung1", mahnung2: "mahnung2", handover: "handover_notice" };
 

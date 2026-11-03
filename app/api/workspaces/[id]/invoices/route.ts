@@ -6,6 +6,8 @@ import { routeDeps } from "@/lib/api/serverDeps";
 import { createAndSendInvoice } from "@/lib/services/invoices";
 import { refreshProposals } from "@/lib/services/steps";
 
+export const maxDuration = 60;
+
 export async function POST(req: Request, ctx: RouteContext<"/api/workspaces/[id]/invoices">): Promise<Response> {
   const { id } = await ctx.params;
   return handleRoute(routeDeps, { bucket: "paypal_write", body: CreateInvoiceBody }, async ({ userId, body, services }) => {
