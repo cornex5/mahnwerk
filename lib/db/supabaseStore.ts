@@ -6,18 +6,22 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AuditRow,
   CaseRow,
+  ClaimFacts,
   CaseTransitionWrite,
   InvoiceRow,
   InvoiceSyncPatch,
   LedgerRow,
   PayPalEventRow,
   ReconcileStore,
+  StepRow,
   StoredEvent,
 } from "../cases/store";
 
 const INVOICE_COLS = "id, workspace_id, paypal_invoice_id, number, currency, principal_cents";
 const LEDGER_COLS = "workspace_id, invoice_id, kind, amount_cents, booked_on, paypal_ref, source";
 const CASE_COLS = "id, workspace_id, invoice_id, state, prev_state, paused_reason, version";
+// Transitions that record an outbound payment request (Mahnung) under BGB 286(1).
+const PAYMENT_REQUEST_ACTIONS = ["case.reminder_sent", "case.mahnung1_sent", "case.mahnung2_sent"];
 const EVENT_COLS = "event_id, event_type, resource_type, resource_id, verified, payload, processed_at, attempts";
 
 function fail(op: string, error: { message: string } | null): never {
@@ -112,6 +116,58 @@ export class SupabaseStore implements ReconcileStore {
   async updateInvoiceSync(invoiceId: string, patch: InvoiceSyncPatch) {
     const r = await this.db.from("invoices").update(patch).eq("id", invoiceId);
     if (r.error) fail("update invoices", r.error);
+  }
+
+  async getClaimFacts(invoiceId: string): Promise<ClaimFacts | null> {
+    const r = await this.db
+      .from("invoices")
+      .select("due_date, fixed_calendar_due, default_warning_printed, received_on, debtors(type)")
+      .eq("id", invoiceId)
+      .maybeSingle();
+    if (r.error) fail("read invoices", r.error);
+    if (!r.data) return null;
+    const row = r.data as unknown as {
+      due_date: string;
+      fixed_calendar_due: boolean;
+      default_warning_printed: boolean;
+      received_on: string | null;
+      debtors: { type: string } | { type: string }[] | null;
+    };
+    const debtor = Array.isArray(row.debtors) ? row.debtors[0] : row.debtors;
+    if (!debtor || (debtor.type !== "consumer" && debtor.type !== "business")) return null;
+
+    // The virtual date of the first sent reminder or Mahnung, from the append-only audit log.
+    const a = await this.db
+      .from("audit_log")
+      .select("virtual_date")
+      .eq("invoice_id", invoiceId)
+      .in("action", PAYMENT_REQUEST_ACTIONS)
+      .not("virtual_date", "is", null)
+      .order("virtual_date", { ascending: true })
+      .limit(1);
+    if (a.error) fail("read audit_log", a.error);
+    return {
+      due_date: row.due_date,
+      fixed_calendar_due: row.fixed_calendar_due,
+      default_warning_printed: row.default_warning_printed,
+      received_on: row.received_on,
+      debtor_type: debtor.type,
+      first_payment_request_on: (a.data[0]?.virtual_date as string | undefined) ?? null,
+    };
+  }
+
+  async insertFeeInvoiceStepIfAbsent(row: StepRow & { kind: "fee_invoice"; status: "proposed" }) {
+    // Pre-check keeps this idempotent even before migration 0002 is applied; the partial unique
+    // index from 0002 closes the race between two concurrent deliveries.
+    const cur = await this.db.from("steps").select("id").eq("case_id", row.case_id).eq("kind", "fee_invoice").limit(1);
+    if (cur.error) fail("read steps", cur.error);
+    if (cur.data.length > 0) return false;
+    const r = await this.db.from("steps").insert(row);
+    if (r.error) {
+      if (r.error.code === "23505") return false; // unique_violation: another delivery won
+      fail("insert steps", r.error);
+    }
+    return true;
   }
 
   async getCaseByInvoice(invoiceId: string) {

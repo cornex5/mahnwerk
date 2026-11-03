@@ -34,9 +34,9 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - [x] Repo attached and cloned, Next.js scaffold
 - [x] Rules engine and tests 1-9 (26 tests pass; test 4 = 854 cents)
 - [x] Supabase project mahnwerk (eu-central-1, ref rhelfhiiohajafwnkxhs) and Vercel project mahnwerk created, non-secret env set
-- [x] Supabase schema written (supabase/migrations/0001_init.sql), NOT yet applied
+- [x] Supabase schema applied (0001 init, 0002 one fee_invoice step per case)
 - [x] PayPal REST client (lib/paypal), state machine and reconciler (lib/cases), webhook route (app/api/webhooks/paypal); 106 tests pass offline, typecheck, eslint and next build clean
-- [ ] Apply migration via Supabase connector, set SUPABASE_SERVICE_ROLE_KEY and PAYPAL_WEBHOOK_ID in Vercel, register the webhook URL in the PayPal app
+- [ ] Set SUPABASE_SERVICE_ROLE_KEY and PAYPAL_WEBHOOK_ID in Vercel, register the webhook URL in the PayPal app
 - [ ] Deployed skeleton, Devpost draft (by Nov 5)
 
 ## Open items
@@ -46,3 +46,8 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - Decided: direct REST via fetch (no SDK) for Invoicing v2, Disputes and webhook verification
 - Decide: refund semantics. The rules engine treats a refund as a negative payment (reopens principal); PayPal treats a merchant refund as money returned, often a claim reduction. Reconciler only reopens a case when PayPal reports due_amount > 0 and flags partial refunds for review
 - Verify in sandbox: payment_id in invoice payments equals the capture/transaction id used by disputes and PAYMENT.CAPTURE.REFUNDED (linking depends on it); exact INVOICING webhook resource shape (resource.id vs resource.invoice.id, both handled)
+
+## Decisions 2026-11-03 (Jonas)
+- Refund reduces the claim (credit note), never reopens principal or interest; partial refund after payment is flagged for review.
+- Paid case with accrued interest or fee still owed closes as closed_paid and proposes a fee_invoice step in the approval queue (nothing sent automatically).
+- Mahnwerk is public at mahnwerk.vercel.app (Vercel protection off, sandbox data only).

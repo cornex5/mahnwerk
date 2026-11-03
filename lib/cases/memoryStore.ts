@@ -4,12 +4,14 @@
 import type {
   AuditRow,
   CaseRow,
+  ClaimFacts,
   CaseTransitionWrite,
   InvoiceRow,
   InvoiceSyncPatch,
   LedgerRow,
   PayPalEventRow,
   ReconcileStore,
+  StepRow,
   StoredEvent,
 } from "./store";
 
@@ -18,6 +20,8 @@ export class MemoryStore implements ReconcileStore {
   invoices = new Map<string, InvoiceRow & Partial<InvoiceSyncPatch>>();
   ledger: LedgerRow[] = [];
   cases = new Map<string, CaseRow>();
+  claimFacts = new Map<string, ClaimFacts>();
+  steps: (StepRow & { id: string })[] = [];
   audit: (AuditRow & { seq: number })[] = [];
   clockOffsets = new Map<string, number>();
   /** Test hook: called before each transitionCase, may mutate state to simulate a concurrent writer. */
@@ -86,6 +90,18 @@ export class MemoryStore implements ReconcileStore {
   async updateInvoiceSync(invoiceId: string, patch: InvoiceSyncPatch) {
     const inv = this.must(this.invoices.get(invoiceId), "invoice");
     Object.assign(inv, patch);
+  }
+
+  async getClaimFacts(invoiceId: string) {
+    const f = this.claimFacts.get(invoiceId);
+    return f ? { ...f } : null;
+  }
+
+  async insertFeeInvoiceStepIfAbsent(row: StepRow & { kind: "fee_invoice"; status: "proposed" }) {
+    if (!this.cases.has(row.case_id)) throw new Error("steps.case_id foreign key violated");
+    if (this.steps.some((s) => s.case_id === row.case_id && s.kind === "fee_invoice")) return false;
+    this.steps.push({ ...row, facts: structuredClone(row.facts), id: `step-${this.steps.length + 1}` });
+    return true;
   }
 
   async getCaseByInvoice(invoiceId: string) {

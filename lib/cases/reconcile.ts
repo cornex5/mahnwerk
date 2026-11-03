@@ -4,9 +4,12 @@
 // state, processing is idempotent and order-independent (replays and out-of-order events converge).
 
 import { addDays, isValidIsoDate } from "../rules/dates";
+import { DE_BASE_RATES, DE_RULESET } from "../rules/de";
+import { calculateClaim } from "../rules/engine";
+import type { BaseRateRow, CalcResult, RuleSet } from "../rules/types";
 import { moneyToCents } from "../paypal/money";
 import type { PayPalCaptureRefund, PayPalDispute, PayPalInvoice } from "../paypal/schemas";
-import { isActive, transition, type CaseEvent, type CaseSnapshot, type CaseState } from "./stateMachine";
+import { isActive, isClosed, transition, type CaseEvent, type CaseSnapshot, type CaseState } from "./stateMachine";
 import type { AuditRow, CaseRow, InvoiceRow, LedgerRow, ReconcileStore, StoredEvent } from "./store";
 
 export interface PayPalReader {
@@ -20,6 +23,9 @@ export interface ReconcileDeps {
   store: ReconcileStore;
   /** Wall clock in ms; injected so tests are deterministic. */
   now: () => number;
+  /** Rules for the claim calculation. Default: German rule set and base rate table. */
+  ruleSet?: RuleSet;
+  baseRates?: readonly BaseRateRow[];
 }
 
 export interface ProcessResult {
@@ -118,13 +124,22 @@ export interface RemoteFacts {
 
 const UNPAID_STATUSES = new Set(["SENT", "UNPAID", "PARTIALLY_PAID", "PAYMENT_PENDING", "SCHEDULED"]);
 
-/** What PayPal says the claim looks like, independent of our current case state. */
+const FULL_REFUND_STATUSES = new Set(["REFUNDED", "MARKED_AS_REFUNDED"]);
+
+/**
+ * What PayPal says the claim looks like, independent of our current case state.
+ * Refunds are credit notes (decision of Nov 3 2026): they reduce the claim and never reopen it.
+ * PayPal's own due_amount after a refund (money-back view) is therefore not used to reopen.
+ */
 export function desiredOutcome(f: RemoteFacts): { outcome: DesiredOutcome; why?: string } {
   switch (f.status) {
     case "CANCELLED":
       return { outcome: "cancelled" };
     case "REFUNDED":
     case "MARKED_AS_REFUNDED":
+      if (f.paidCents === 0 && f.refundedCents < f.totalCents) {
+        return { outcome: "review", why: "status refunded but refunds are below the invoice total and nothing was paid" };
+      }
       return { outcome: "refunded" };
     case "PAID":
     case "MARKED_AS_PAID":
@@ -132,14 +147,16 @@ export function desiredOutcome(f: RemoteFacts): { outcome: DesiredOutcome; why?:
       if (f.dueCents !== null && f.dueCents > 0) return { outcome: "review", why: "status paid but due_amount is above zero" };
       return { outcome: "paid" };
     case "PARTIALLY_REFUNDED":
-      // A partial refund only reopens the claim when PayPal itself reports a balance due again.
-      if (f.dueCents === null) return { outcome: "review", why: "partially refunded without due_amount" };
-      if (f.dueCents > 0) return { outcome: "unpaid" };
-      return { outcome: "paid", why: "partial refund without balance due" };
+      // Partial refund: the claim is reduced (rules engine), the case state does not change.
+      return { outcome: "none", why: "partial refund reduces the claim, no state change" };
     case "DRAFT":
       return { outcome: "none" };
     default:
-      if (UNPAID_STATUSES.has(f.status)) return { outcome: "unpaid" };
+      if (UNPAID_STATUSES.has(f.status)) {
+        // A balance PayPal shows only because money went back is a reduced claim, not a reopen.
+        if (f.refundedCents > 0) return { outcome: "none", why: "refund reduces the claim, no state change" };
+        return { outcome: "unpaid" };
+      }
       return { outcome: "review", why: `unknown PayPal status ${f.status}` };
   }
 }
@@ -161,8 +178,8 @@ export function caseEventFor(state: CaseState, outcome: DesiredOutcome): { event
       if (state === "closed_paid") return { event: null };
       return { event: null, conflict: `PayPal paid but case is ${state}` };
     case "unpaid":
-      if (state === "closed_paid") return { event: { type: "reopened" } };
-      if (state === "closed_refunded" || state === "closed_cancelled") return { event: null, conflict: `PayPal unpaid but case is ${state}` };
+      // Never reopen automatically: a closed case that PayPal reports as unpaid goes to a human.
+      if (isClosed(state)) return { event: null, conflict: `PayPal unpaid but case is ${state}` };
       return { event: null };
     default:
       return { event: null };
@@ -229,7 +246,8 @@ export class Reconciler {
     if (remote.refunds?.refund_amount && moneyToCents(remote.refunds.refund_amount, inv.currency) !== refundedCents) {
       problems.push("refund_amount does not match the sum of refund transactions");
     }
-    if (refundedCents > paidCents) problems.push("refunds exceed payments");
+    // Refunds above payments are legal under credit-note semantics (claim reduction without a
+    // payment). Refunds above the open claim are capped by the rules engine and flagged below.
 
     // Existing rows are never changed or deleted. Differences are flagged for a human.
     const existing = await store.listLedger(inv.id);
@@ -244,16 +262,14 @@ export class Reconciler {
     const toInsert: LedgerRow[] = entries
       .filter((e) => !existing.some((r) => r.kind === e.kind && r.paypal_ref === e.paypal_ref))
       .map((e) => ({ ...e, workspace_id: inv.workspace_id, invoice_id: inv.id, source: "paypal" as const }));
-    if (refundedCents <= paidCents && toInsert.length > 0) {
-      const inserted = await store.insertLedgerIgnoreDuplicates(toInsert);
-      for (const r of inserted) {
-        await this.audit(inv, null, `ledger.${r.kind}_recorded`, {
-          ...ctx,
-          amount_cents: r.amount_cents,
-          booked_on: r.booked_on,
-          paypal_ref: r.paypal_ref,
-        });
-      }
+    const inserted = toInsert.length > 0 ? await store.insertLedgerIgnoreDuplicates(toInsert) : [];
+    for (const r of inserted) {
+      await this.audit(inv, null, `ledger.${r.kind}_recorded`, {
+        ...ctx,
+        amount_cents: r.amount_cents,
+        booked_on: r.booked_on,
+        paypal_ref: r.paypal_ref,
+      });
     }
 
     await store.updateInvoiceSync(inv.id, {
@@ -265,6 +281,11 @@ export class Reconciler {
     });
 
     const caseRow = await store.getCaseByInvoice(inv.id);
+    // Flags are raised once, when the refund row is first recorded, so replays stay quiet.
+    const newRefunds = inserted.filter((r) => r.kind === "refund");
+    if (caseRow && newRefunds.length > 0) {
+      await this.flagRefunds(inv, caseRow.id, newRefunds, { paidCents, status: remote.status }, ctx);
+    }
     if (problems.length > 0) {
       await this.audit(inv, caseRow?.id ?? null, "reconcile.needs_review", { ...ctx, problems, paypal_status: remote.status }, "system");
       return { workspaceId: inv.workspace_id, note: "needs_review" };
@@ -280,10 +301,122 @@ export class Reconciler {
 
     const details = { ...ctx, paypal_status: remote.status, paid_cents: paidCents, refunded_cents: refundedCents, due_cents: dueCents, why: desired.why };
     const note = await this.applyCaseOutcome(inv, (state) => caseEventFor(state, desired.outcome), details);
-    if (remote.status === "PARTIALLY_REFUNDED" && desired.outcome === "paid") {
-      await this.audit(inv, caseRow.id, "reconcile.partial_refund_review", { ...ctx, refunded_cents: refundedCents }, "system");
-    }
+    if (desired.outcome === "paid") await this.proposeFeeInvoiceIfOwed(inv, ctx);
     return { workspaceId: inv.workspace_id, note };
+  }
+
+  /**
+   * Runs the rules engine on the stored ledger. calcDate is the workspace's virtual date, or the
+   * latest booking date if that is later (the engine ignores entries after calcDate).
+   * On missing facts or an engine error the invoice is flagged for review and null is returned.
+   */
+  private async computeClaim(inv: InvoiceRow, caseId: string, ctx: Record<string, unknown>): Promise<{ result: CalcResult; calcDate: string } | null> {
+    const { store } = this.deps;
+    const facts = await store.getClaimFacts(inv.id);
+    if (!facts) {
+      await this.audit(inv, caseId, "reconcile.needs_review", { ...ctx, problems: ["no claim facts (invoice or debtor missing)"] }, "system");
+      return null;
+    }
+    const ledger = await store.listLedger(inv.id);
+    let calcDate = await this.virtualDate(inv.workspace_id);
+    for (const l of ledger) if (l.booked_on > calcDate) calcDate = l.booked_on;
+    try {
+      const result = calculateClaim({
+        invoice: {
+          principalCents: inv.principal_cents,
+          dueDate: facts.due_date,
+          fixedCalendarDue: facts.fixed_calendar_due,
+          defaultWarningPrinted: facts.default_warning_printed,
+          ...(facts.received_on ? { receivedOn: facts.received_on } : {}),
+          ...(facts.first_payment_request_on ? { firstPaymentRequestSentOn: facts.first_payment_request_on } : {}),
+          debtorType: facts.debtor_type,
+        },
+        ledger: ledger.map((l) => ({ date: l.booked_on, kind: l.kind, amountCents: l.amount_cents })),
+        calcDate,
+        ruleSet: this.deps.ruleSet ?? DE_RULESET,
+        baseRates: this.deps.baseRates ?? DE_BASE_RATES,
+      });
+      return { result, calcDate };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await this.audit(inv, caseId, "reconcile.needs_review", { ...ctx, problems: [`rules engine: ${msg}`] }, "system");
+      return null;
+    }
+  }
+
+  /**
+   * Refunds reduce the claim (credit note). No state change ever comes from here; this only
+   * writes review flags: one when a refund exceeds the open claim (capped by the engine) and one
+   * for a partial refund after a payment.
+   */
+  private async flagRefunds(
+    inv: InvoiceRow,
+    caseId: string,
+    newRefunds: LedgerRow[],
+    remote: { paidCents: number; status: string },
+    ctx: Record<string, unknown>,
+  ): Promise<void> {
+    const refunds = newRefunds.map((r) => ({ paypal_ref: r.paypal_ref, amount_cents: r.amount_cents, booked_on: r.booked_on }));
+    const claim = await this.computeClaim(inv, caseId, ctx);
+    if (claim && claim.result.refundCappedCents > 0) {
+      await this.audit(
+        inv,
+        caseId,
+        "reconcile.refund_capped",
+        {
+          ...ctx,
+          refunds,
+          capped_cents: claim.result.refundCappedCents,
+          open_principal_cents: claim.result.openPrincipalCents,
+          calc_date: claim.calcDate,
+          why: "refund exceeds the open claim; the excess was not applied",
+        },
+        "system",
+      );
+    }
+    if (remote.paidCents > 0 && !FULL_REFUND_STATUSES.has(remote.status)) {
+      await this.audit(
+        inv,
+        caseId,
+        "reconcile.refund_review",
+        { ...ctx, refunds, paypal_status: remote.status, why: "partial refund after a payment: claim reduced, case state unchanged" },
+        "system",
+      );
+    }
+  }
+
+  /**
+   * PayPal says paid, but interest or the flat fee may still be owed under BGB 288 (by BGB 367 a
+   * payment of the invoice total goes to fee and interest first). The case stays closed_paid; a
+   * single 'fee_invoice' step is proposed for the human approval queue. Nothing is sent here.
+   */
+  private async proposeFeeInvoiceIfOwed(inv: InvoiceRow, ctx: Record<string, unknown>): Promise<void> {
+    const row = await this.deps.store.getCaseByInvoice(inv.id);
+    if (!row || row.state !== "closed_paid") return;
+    const claim = await this.computeClaim(inv, row.id, ctx);
+    if (!claim) return;
+    const r = claim.result;
+    if (r.totalDueCents <= 0) return;
+    const facts = {
+      principalCents: inv.principal_cents,
+      interestCents: r.interestAccruedCents,
+      feeCents: r.flatFeeCents,
+      totalCents: r.totalDueCents,
+      calcDate: claim.calcDate,
+      openPrincipalCents: r.openPrincipalCents,
+      openInterestCents: r.openInterestCents,
+      openFeeCents: r.openFeeCents,
+      defaultStart: r.defaultStart,
+      citation: r.citation,
+    };
+    const created = await this.deps.store.insertFeeInvoiceStepIfAbsent({
+      workspace_id: inv.workspace_id,
+      case_id: row.id,
+      kind: "fee_invoice",
+      status: "proposed",
+      facts,
+    });
+    if (created) await this.audit(inv, row.id, "step.fee_invoice_proposed", { ...ctx, ...facts }, "system");
   }
 
   /** Applies the event chosen for the current state, with optimistic locking and retry on conflict. */

@@ -107,6 +107,11 @@ export interface AllocationRow {
   toPrincipal: number;
   /** Overpayment kept as credit (negative when a refund consumes credit). */
   unappliedCents: number;
+  /**
+   * Refund rows only: part of the refund beyond what was still outstanding, not applied (>= 0).
+   * For a refund row: toPrincipal + unappliedCents - cappedCents === amountCents.
+   */
+  cappedCents?: number;
 }
 
 export interface CalcResult {
@@ -125,5 +130,7 @@ export interface CalcResult {
   totalDueCents: number;
   /** Overpaid money held as credit for the debtor (not netted against totalDue). */
   creditCents: number;
+  /** Sum of refund amounts that exceeded the open claim and were capped (needs human review). */
+  refundCappedCents: number;
   allocation: AllocationRow[];
 }

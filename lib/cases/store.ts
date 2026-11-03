@@ -44,6 +44,28 @@ export interface LedgerRow {
   source: "paypal" | "manual";
 }
 
+/** Invoice facts the rules engine needs beyond InvoiceRow (from invoices, debtors and the audit log). */
+export interface ClaimFacts {
+  due_date: string;
+  fixed_calendar_due: boolean;
+  default_warning_printed: boolean;
+  received_on: string | null;
+  debtor_type: "consumer" | "business";
+  /** Virtual date of the first sent reminder or Mahnung (BGB 286(1)), null if none was sent. */
+  first_payment_request_on: string | null;
+}
+
+export type StepKind = "reminder" | "mahnung1" | "mahnung2" | "handover" | "fee_invoice" | "close";
+export type StepStatus = "proposed" | "approved" | "sent" | "rejected" | "failed";
+
+export interface StepRow {
+  workspace_id: string;
+  case_id: string;
+  kind: StepKind;
+  status: StepStatus;
+  facts: Record<string, unknown>;
+}
+
 export interface CaseRow {
   id: string;
   workspace_id: string;
@@ -98,7 +120,16 @@ export interface ReconcileStore {
   insertLedgerIgnoreDuplicates(rows: LedgerRow[]): Promise<LedgerRow[]>;
   updateInvoiceSync(invoiceId: string, patch: InvoiceSyncPatch): Promise<void>;
 
+  /** Engine inputs for an invoice, or null when the invoice or its debtor is missing. */
+  getClaimFacts(invoiceId: string): Promise<ClaimFacts | null>;
+
   getCaseByInvoice(invoiceId: string): Promise<CaseRow | null>;
+  /**
+   * Inserts a 'fee_invoice' step in status 'proposed' unless the case already has a fee_invoice
+   * step in any status (a rejected one is a human decision and is not re-proposed). Returns true
+   * when inserted. Backed by a partial unique index in SQL (migration 0002).
+   */
+  insertFeeInvoiceStepIfAbsent(row: StepRow & { kind: "fee_invoice"; status: "proposed" }): Promise<boolean>;
   /** Atomic: updates the case if version and state match, and writes the audit row. False on conflict. */
   transitionCase(write: CaseTransitionWrite): Promise<boolean>;
   insertAudit(row: AuditRow): Promise<void>;

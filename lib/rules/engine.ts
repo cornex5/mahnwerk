@@ -156,13 +156,12 @@ export function calculateClaim(input: CalcInput): CalcResult {
 
   // Running state, all integer cents except the unsettled interest.
   let principalOpen = invoice.principalCents;
-  let principalPaid = 0;
   let feeOpen = 0;
-  let feePaid = 0;
   let interestOpen = 0; // settled (rounded) and not yet paid
   let interestPaid = 0;
   let interestAccrued = 0; // sum of rounded settlements
   let credit = 0; // overpayment held for the debtor
+  let refundCapped = 0; // refund amounts beyond what was still outstanding (not applied)
   let unsettled: DecValue = new Dec(0);
   let active = false;
   let flatFee = 0;
@@ -213,8 +212,8 @@ export function calculateClaim(input: CalcInput): CalcResult {
   const activateIfDue = (day: number): void => {
     if (active || defaultDay === null || day < defaultDay || defaultDay > calcDay) return;
     // Default only bites if principal is still open at the start of the default start day.
-    // A claim fully paid before that day never enters default; if a later refund reopens it,
-    // a new payment request is needed (we do not re-derive a default start in that case).
+    // A claim fully paid (or fully reduced by refunds) before that day never enters default.
+    // Refunds only ever lower principal, so they can never create a default.
     if (principalOpen > 0) {
       active = true;
       accrualDay = defaultDay;
@@ -248,7 +247,6 @@ export function calculateClaim(input: CalcInput): CalcResult {
         if (target === "fee") {
           const x = Math.min(rest, feeOpen);
           feeOpen -= x;
-          feePaid += x;
           row.toFee += x;
           rest -= x;
         } else if (target === "interest") {
@@ -260,7 +258,6 @@ export function calculateClaim(input: CalcInput): CalcResult {
         } else {
           const x = Math.min(rest, principalOpen);
           principalOpen -= x;
-          principalPaid += x;
           row.toPrincipal += x;
           rest -= x;
         }
@@ -269,12 +266,15 @@ export function calculateClaim(input: CalcInput): CalcResult {
       row.unappliedCents = rest;
       allocation.push(row);
     } else {
-      // Refund: money flows back to the debtor, so it reduces what was paid.
-      // Design choice: treat it as a negative payment. It first consumes any overpayment credit,
-      // then reopens principal (up to what was paid on principal). If it exceeds that, the rest
-      // reopens interest, then the fee (reverse of the allocation order), so principal never
-      // exceeds the original claim and no interest is charged on interest or fees (BGB 289).
-      // A refund larger than everything paid is rejected as inconsistent data.
+      // Refund = credit note (decision of Nov 3 2026): it REDUCES THE CLAIM. It never reopens
+      // principal, never reopens interest or the fee and never restarts interest.
+      // 1. It first consumes overpayment credit (returning money the debtor overpaid is not a
+      //    claim reduction).
+      // 2. The rest lowers the open principal from the refund's booked date on. Interest already
+      //    accrued on earlier days stays (accrueUntil above ran up to this day with the old
+      //    principal; the unsettled interest is kept and rounded at the next settlement).
+      // 3. Anything beyond open principal is capped: not applied, reported in cappedCents and
+      //    refundCappedCents so a human can review it. Interest and fee are never reduced.
       let rest = e.amountCents;
       const row: AllocationRow = {
         date: e.date,
@@ -284,33 +284,18 @@ export function calculateClaim(input: CalcInput): CalcResult {
         toInterest: 0,
         toPrincipal: 0,
         unappliedCents: 0,
+        cappedCents: 0,
       };
       const c = Math.min(rest, credit);
       credit -= c;
-      row.unappliedCents = -c;
+      row.unappliedCents = 0 - c; // 0 - c avoids -0
       rest -= c;
-      for (const target of [...ruleSet.allocationOrder].reverse()) {
-        if (target === "principal") {
-          const x = Math.min(rest, principalPaid);
-          principalPaid -= x;
-          principalOpen += x;
-          row.toPrincipal -= x;
-          rest -= x;
-        } else if (target === "interest") {
-          const x = Math.min(rest, interestPaid);
-          interestPaid -= x;
-          interestOpen += x;
-          row.toInterest -= x;
-          rest -= x;
-        } else {
-          const x = Math.min(rest, feePaid);
-          feePaid -= x;
-          feeOpen += x;
-          row.toFee -= x;
-          rest -= x;
-        }
-      }
-      if (rest > 0) throw new RangeError(`Refund on ${e.date} exceeds the amount paid so far`);
+      const x = Math.min(rest, principalOpen);
+      principalOpen -= x;
+      row.toPrincipal = 0 - x;
+      rest -= x;
+      row.cappedCents = rest;
+      refundCapped += rest;
       allocation.push(row);
     }
   }
@@ -350,6 +335,7 @@ export function calculateClaim(input: CalcInput): CalcResult {
     openFeeCents: feeOpen,
     totalDueCents: totalDue,
     creditCents: credit,
+    refundCappedCents: refundCapped,
     allocation,
   };
 }

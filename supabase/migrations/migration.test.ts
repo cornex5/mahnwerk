@@ -70,6 +70,17 @@ describe("0001_init.sql", () => {
   });
 });
 
+describe("0002_fee_invoice_step_unique.sql", () => {
+  const sql2 = readFileSync(path.join(__dirname, "0002_fee_invoice_step_unique.sql"), "utf8");
+  it("allows at most one fee_invoice step per case", () => {
+    expect(sql2).toMatch(/create unique index steps_one_fee_invoice_per_case\s+on public\.steps \(case_id\)\s+where kind = 'fee_invoice';/);
+  });
+  it("is only additive (no drop, alter or delete)", () => {
+    const code = sql2.replace(/--.*$/gm, "");
+    expect(code).not.toMatch(/\b(drop|alter|delete|truncate|update)\b/i);
+  });
+});
+
 describe("repository text rules", () => {
   it("contains no em dash in source, SQL or docs", () => {
     const root = path.resolve(__dirname, "../..");

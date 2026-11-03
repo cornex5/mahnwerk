@@ -33,9 +33,14 @@ describe("pure helpers", () => {
     expect(desiredOutcome({ ...f, status: "PAID", paidCents: 99999 }).outcome).toBe("review");
     expect(desiredOutcome({ ...f, status: "PAID", dueCents: 1 }).outcome).toBe("review");
     expect(desiredOutcome({ ...f, status: "PARTIALLY_PAID", paidCents: 400 }).outcome).toBe("unpaid");
-    expect(desiredOutcome({ ...f, status: "PARTIALLY_REFUNDED", refundedCents: 100, dueCents: 0 }).outcome).toBe("paid");
-    expect(desiredOutcome({ ...f, status: "PARTIALLY_REFUNDED", refundedCents: 100, dueCents: 100 }).outcome).toBe("unpaid");
-    expect(desiredOutcome({ ...f, status: "PARTIALLY_REFUNDED", refundedCents: 100, dueCents: null }).outcome).toBe("review");
+    // Refunds are credit notes (Nov 3 2026): a partial refund never reopens, whatever PayPal's
+    // due_amount says. (Before: dueCents 0 -> paid, dueCents > 0 -> unpaid/reopen, null -> review.)
+    expect(desiredOutcome({ ...f, status: "PARTIALLY_REFUNDED", refundedCents: 100, dueCents: 0 }).outcome).toBe("none");
+    expect(desiredOutcome({ ...f, status: "PARTIALLY_REFUNDED", refundedCents: 100, dueCents: 100 }).outcome).toBe("none");
+    expect(desiredOutcome({ ...f, status: "PARTIALLY_REFUNDED", refundedCents: 100, dueCents: null }).outcome).toBe("none");
+    expect(desiredOutcome({ ...f, status: "SENT", refundedCents: 100, dueCents: 100 }).outcome).toBe("none");
+    expect(desiredOutcome({ ...f, status: "REFUNDED", paidCents: 0, refundedCents: 100000 }).outcome).toBe("refunded");
+    expect(desiredOutcome({ ...f, status: "REFUNDED", paidCents: 0, refundedCents: 50000 }).outcome).toBe("review");
     expect(desiredOutcome({ ...f, status: "SOMETHING_NEW" }).outcome).toBe("review");
     expect(desiredOutcome({ ...f, status: "DRAFT" }).outcome).toBe("none");
   });
@@ -49,6 +54,8 @@ describe("pure helpers", () => {
       }
     }
     expect(caseEventFor("closed_paid", "cancelled").conflict).toMatch(/cancelled/);
+    // No automatic reopen any more: a closed_paid case reported unpaid goes to a human.
+    expect(caseEventFor("closed_paid", "unpaid")).toEqual({ event: null, conflict: "PayPal unpaid but case is closed_paid" });
   });
 
   it("refuses payments without an id or with sub-cent amounts", () => {
@@ -112,7 +119,10 @@ describe("invoice reconciliation", () => {
     expect(transitions(w)).toHaveLength(1);
   });
 
-  it("partial payment then refund: ledger has both, case stays in its stage, engine reopens principal", async () => {
+  // Refund tests below were changed deliberately on Nov 3 2026 (refund = credit note, reduces the
+  // claim, never reopens). The old versions expected the engine to reopen principal and a
+  // closed_paid case to reopen when PayPal reported a balance due after a partial refund.
+  it("partial payment then refund: ledger has both, case stays in its stage, engine reduces the claim", async () => {
     const w = makeWorld("mahnung1");
     w.paypal.invoices.set(PP_INV, remoteInvoice({ status: "PARTIALLY_PAID", payments: [{ id: "PAY-1", date: "2026-10-20", cents: 40000 }] }));
     await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.UPDATED"));
@@ -123,11 +133,17 @@ describe("invoice reconciliation", () => {
     );
     await run(w, invoiceEvent("WH-2", "INVOICING.INVOICE.REFUNDED"));
     await run(w, invoiceEvent("WH-2b", "INVOICING.INVOICE.UPDATED")); // replay under another id
+    await run(w, invoiceEvent("WH-2", "INVOICING.INVOICE.REFUNDED")); // replay under the same id
     expect(w.store.ledger.map((l) => `${l.kind}:${l.amount_cents}`)).toEqual(["payment:40000", "refund:40000"]);
     expect(caseOf(w).state).toBe("mahnung1");
     expect(transitions(w)).toHaveLength(0);
+    // Flagged once for review, no cap (the refund is below the open principal).
+    expect(w.store.audit.filter((a) => a.action === "reconcile.refund_review")).toHaveLength(1);
+    expect(w.store.audit.filter((a) => a.action === "reconcile.refund_capped")).toHaveLength(0);
 
     // Engine on the stored ledger: business debtor, fixed due date 2026-09-30, calc 2026-10-31.
+    // 2026-10-01..2026-10-20: 19 days on 100000 at 10.52: 547.6 -> 548. Payment 40000: fee 4000,
+    // interest 548, principal 35452 -> 64548. Refund 40000 reduces the claim: 24548.
     const res = calculateClaim({
       invoice: { principalCents: 100000, dueDate: "2026-09-30", fixedCalendarDue: true, defaultWarningPrinted: false, debtorType: "business" },
       ledger: w.store.ledger.map((l) => ({ date: l.booked_on, kind: l.kind, amountCents: l.amount_cents })),
@@ -135,30 +151,55 @@ describe("invoice reconciliation", () => {
       ruleSet: DE_RULESET,
       baseRates: DE_BASE_RATES,
     });
-    expect(res.openPrincipalCents).toBe(100000);
+    expect(res.openPrincipalCents).toBe(24548);
     expect(res.creditCents).toBe(0);
+    expect(res.refundCappedCents).toBe(0);
   });
 
-  it("partial refund after full payment with no balance due keeps closed_paid and flags review", async () => {
+  it("partial refund after full payment keeps closed_paid, flags review and the cap once", async () => {
     const w = makeWorld("closed_paid");
     w.paypal.invoices.set(
       PP_INV,
       remoteInvoice({ status: "PARTIALLY_REFUNDED", payments: [{ id: "PAY-1", date: "2026-11-01", cents: 100000 }], refunds: [{ id: "REF-1", date: "2026-11-02", cents: 10000 }], dueCents: 0 }),
     );
     await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.REFUNDED"));
-    expect(caseOf(w).state).toBe("closed_paid");
-    expect(w.store.audit.some((a) => a.action === "reconcile.partial_refund_review")).toBe(true);
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.REFUNDED")); // replay
+    expect(caseOf(w)).toMatchObject({ state: "closed_paid", version: 0 });
+    expect(transitions(w)).toHaveLength(0);
+    expect(w.store.audit.filter((a) => a.action === "reconcile.refund_review")).toHaveLength(1);
+    // 31 days on 100000: 893. Payment: fee 4000, interest 893, principal 95107 -> open 4893.
+    // Refund 10000 reduces principal to 0, 5107 is capped.
+    const capped = w.store.audit.filter((a) => a.action === "reconcile.refund_capped");
+    expect(capped).toHaveLength(1);
+    expect(capped[0]).toMatchObject({ actor: "system", case_id: CASE, details: { capped_cents: 5107, open_principal_cents: 0 } });
   });
 
-  it("partial refund that PayPal reports as a balance due reopens to the previous stage", async () => {
+  it("partial refund never reopens a closed case, even when PayPal reports a balance due", async () => {
     const w = makeWorld("closed_paid"); // prev_state reminded
     w.paypal.invoices.set(
       PP_INV,
       remoteInvoice({ status: "PARTIALLY_REFUNDED", payments: [{ id: "PAY-1", date: "2026-11-01", cents: 100000 }], refunds: [{ id: "REF-1", date: "2026-11-02", cents: 10000 }], dueCents: 10000 }),
     );
-    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.UPDATED"));
-    expect(caseOf(w)).toMatchObject({ state: "reminded", prev_state: null });
-    expect(transitions(w)[0].action).toBe("case.reopened");
+    expect((await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.UPDATED"))).note).toBe("no_change");
+    // PayPal may also flip the status back to an unpaid one after a refund: still no reopen.
+    w.paypal.invoices.set(
+      PP_INV,
+      remoteInvoice({ status: "PARTIALLY_PAID", payments: [{ id: "PAY-1", date: "2026-11-01", cents: 100000 }], refunds: [{ id: "REF-1", date: "2026-11-02", cents: 10000 }], dueCents: 10000 }),
+    );
+    expect((await run(w, invoiceEvent("WH-2", "INVOICING.INVOICE.UPDATED"))).note).toBe("no_change");
+    expect(caseOf(w)).toMatchObject({ state: "closed_paid", prev_state: "reminded", version: 0 });
+    expect(transitions(w)).toHaveLength(0);
+  });
+
+  it("full refund with nothing paid closes the case as closed_refunded", async () => {
+    const w = makeWorld("mahnung1");
+    w.paypal.invoices.set(PP_INV, remoteInvoice({ status: "REFUNDED", refunds: [{ id: "REF-1", date: "2026-11-02", cents: 100000 }] }));
+    const ev = await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.REFUNDED"));
+    expect(ev.note).toBe("case.refunded_in_full");
+    expect(caseOf(w).state).toBe("closed_refunded");
+    expect(w.store.ledger.map((l) => `${l.kind}:${l.amount_cents}`)).toEqual(["refund:100000"]);
+    expect(w.store.audit.filter((a) => a.action === "reconcile.refund_capped" || a.action === "reconcile.refund_review")).toHaveLength(0);
+    expect(w.store.steps).toHaveLength(0);
   });
 
   it("full refund closes as refunded; cancel on a paid case is a conflict, not a transition", async () => {
@@ -246,6 +287,101 @@ describe("invoice reconciliation", () => {
     expect(w.store.ledger).toHaveLength(1);
     expect(transitions(w)).toHaveLength(1);
     expect(w.store.audit.filter((a) => a.action === "ledger.payment_recorded")).toHaveLength(1);
+  });
+});
+
+describe("fee invoice after paid (interest and flat fee still owed)", () => {
+  const paidWorld = (state: CaseState = "mahnung1", paymentDate = "2026-11-02") => {
+    const w = makeWorld(state);
+    w.paypal.invoices.set(PP_INV, remoteInvoice({ status: "PAID", payments: [{ id: "PAY-1", date: paymentDate, cents: 100000 }] }));
+    return w;
+  };
+  const feeSteps = (w: World) => w.store.steps.filter((st) => st.kind === "fee_invoice");
+
+  it("closes as closed_paid and proposes one fee_invoice step with the engine figures", async () => {
+    const w = paidWorld();
+    const ev = await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    expect(ev.note).toBe("case.paid_in_full");
+    expect(caseOf(w).state).toBe("closed_paid");
+    // Default 2026-10-01. 32 days on 100000 at 10.52: 922.30 -> 922 (settled at the payment).
+    // Payment 100000: fee 4000, interest 922, principal 95078 -> open 4922.
+    // 2026-11-02..2026-11-13 (virtual date): 11 days on 4922: 15.60 -> 16. Total 4922 + 16 = 4938.
+    expect(feeSteps(w)).toHaveLength(1);
+    expect(feeSteps(w)[0]).toMatchObject({
+      workspace_id: WS,
+      case_id: CASE,
+      kind: "fee_invoice",
+      status: "proposed",
+      facts: { principalCents: 100000, interestCents: 938, feeCents: 4000, totalCents: 4938, calcDate: "2026-11-13", defaultStart: "2026-10-01" },
+    });
+    const f = feeSteps(w)[0].facts as { interestCents: number; feeCents: number; totalCents: number };
+    expect(f.interestCents + f.feeCents).toBe(f.totalCents);
+    expect(w.store.audit.filter((a) => a.action === "step.fee_invoice_proposed")).toHaveLength(1);
+    // Nothing is sent: the only PayPal call is the GET.
+    expect(w.paypal.gets).toEqual([`invoice:${PP_INV}`]);
+  });
+
+  it("replays (same id, other ids, concurrent) never create a second proposed step", async () => {
+    const w = paidWorld();
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    await run(w, invoiceEvent("WH-2", "INVOICING.INVOICE.UPDATED"));
+    const r = new Reconciler(w);
+    await Promise.all([r.reconcileInvoice(PP_INV), r.reconcileInvoice(PP_INV), r.reconcileInvoice(PP_INV)]);
+    expect(feeSteps(w)).toHaveLength(1);
+    expect(w.store.audit.filter((a) => a.action === "step.fee_invoice_proposed")).toHaveLength(1);
+    expect(transitions(w)).toHaveLength(1);
+  });
+
+  it("concurrent first deliveries create exactly one step", async () => {
+    const w = paidWorld("reminded");
+    const r = new Reconciler(w);
+    await Promise.all([r.reconcileInvoice(PP_INV), r.reconcileInvoice(PP_INV), r.reconcileInvoice(PP_INV)]);
+    expect(feeSteps(w)).toHaveLength(1);
+    expect(transitions(w)).toHaveLength(1);
+  });
+
+  it("a rejected proposal is not proposed again on replay", async () => {
+    const w = paidWorld();
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    w.store.steps[0].status = "rejected";
+    await run(w, invoiceEvent("WH-2", "INVOICING.INVOICE.PAID"));
+    expect(feeSteps(w).map((st) => st.status)).toEqual(["rejected"]);
+  });
+
+  it("paid before the default start: no interest, no fee, no step", async () => {
+    const w = paidWorld("open", "2026-09-30");
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    expect(caseOf(w).state).toBe("closed_paid");
+    expect(w.store.steps).toHaveLength(0);
+    expect(w.store.audit.some((a) => a.action === "step.fee_invoice_proposed")).toBe(false);
+  });
+
+  it("consumer debtor: interest only, never the flat fee", async () => {
+    const w = paidWorld();
+    w.store.claimFacts.set(INV, { ...w.store.claimFacts.get(INV)!, debtor_type: "consumer" });
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    // 32 days at 6.52: 571.6 -> 572. Payment: interest 572, principal 99428 -> open 572.
+    // 11 days on 572: 1.12 -> 1. Total 573, all interest.
+    expect(feeSteps(w)[0].facts).toMatchObject({ interestCents: 573, feeCents: 0, totalCents: 573 });
+  });
+
+  it("missing claim facts: still closes, no step, flagged for review", async () => {
+    const w = paidWorld();
+    w.store.claimFacts.delete(INV);
+    const ev = await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    expect(ev.note).toBe("case.paid_in_full");
+    expect(caseOf(w).state).toBe("closed_paid");
+    expect(w.store.steps).toHaveLength(0);
+    expect(w.store.audit.some((a) => a.action === "reconcile.needs_review")).toBe(true);
+  });
+
+  it("no step when the paid status does not reconcile (needs review, case unchanged)", async () => {
+    const w = makeWorld("mahnung1");
+    w.paypal.invoices.set(PP_INV, remoteInvoice({ status: "PAID", payments: [{ id: "PAY-1", date: "2026-11-01", cents: 50000 }], dueCents: 0 }));
+    await run(w, invoiceEvent("WH-1", "INVOICING.INVOICE.PAID"));
+    expect(caseOf(w).state).toBe("mahnung1");
+    expect(w.store.steps).toHaveLength(0);
   });
 });
 

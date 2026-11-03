@@ -88,6 +88,15 @@ export function makeWorld(caseState: CaseState = "mahnung1") {
     paused_reason: caseState === "paused_dispute" ? "dispute:PP-D-1" : null,
     version: 0,
   });
+  // Business debtor, fixed calendar due date 2026-09-30: default from 2026-10-01 (BGB 286(2) no. 1).
+  store.claimFacts.set(INV, {
+    due_date: "2026-09-30",
+    fixed_calendar_due: true,
+    default_warning_printed: false,
+    received_on: null,
+    debtor_type: "business",
+    first_payment_request_on: null,
+  });
   store.clockOffsets.set(WS, 10);
   paypal.invoices.set(PP_INV, remoteInvoice({ status: "SENT" }));
   // 2026-11-03T12:00:00Z

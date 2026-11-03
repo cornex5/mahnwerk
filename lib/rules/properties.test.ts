@@ -42,7 +42,9 @@ interface SimOut {
   interestOpen: number;
   feeOpen: number;
   fee: number;
-  alloc: { fee: number; interest: number; principal: number; unapplied: number }[];
+  credit: number;
+  capped: number;
+  alloc: { fee: number; interest: number; principal: number; unapplied: number; capped: number }[];
 }
 
 function simulate(inv: InvoiceFacts, ledger: LedgerEntry[], calcDate: string): SimOut {
@@ -67,7 +69,7 @@ function simulate(inv: InvoiceFacts, ledger: LedgerEntry[], calcDate: string): S
     return r + margin;
   };
 
-  let pOpen = inv.principalCents, pPaid = 0, iOpen = 0, iPaid = 0, fOpen = 0, fPaid = 0, credit = 0;
+  let pOpen = inv.principalCents, iOpen = 0, fOpen = 0, credit = 0, capped = 0;
   let acc = new D(0);
   let active = false, settlements = 0, accrued = 0, fee = 0;
   const alloc: SimOut["alloc"] = [];
@@ -95,26 +97,25 @@ function simulate(inv: InvoiceFacts, ledger: LedgerEntry[], calcDate: string): S
       if (e.kind === "payment") {
         if (active) settle();
         let rest = e.amountCents;
-        const f = Math.min(rest, fOpen); fOpen -= f; fPaid += f; rest -= f;
-        const i = Math.min(rest, iOpen); iOpen -= i; iPaid += i; rest -= i;
-        const p = Math.min(rest, pOpen); pOpen -= p; pPaid += p; rest -= p;
+        const f = Math.min(rest, fOpen); fOpen -= f; rest -= f;
+        const i = Math.min(rest, iOpen); iOpen -= i; rest -= i;
+        const p = Math.min(rest, pOpen); pOpen -= p; rest -= p;
         credit += rest;
-        alloc.push({ fee: f, interest: i, principal: p, unapplied: rest });
+        alloc.push({ fee: f, interest: i, principal: p, unapplied: rest, capped: 0 });
       } else {
+        // Refund = credit note: consumes credit, then lowers open principal, rest is capped.
         let rest = e.amountCents;
         const c = Math.min(rest, credit); credit -= c; rest -= c;
-        const p = Math.min(rest, pPaid); pPaid -= p; pOpen += p; rest -= p;
-        const i = Math.min(rest, iPaid); iPaid -= i; iOpen += i; rest -= i;
-        const f = Math.min(rest, fPaid); fPaid -= f; fOpen += f; rest -= f;
-        if (rest > 0) throw new Error("refund exceeds paid");
-        alloc.push({ fee: -f, interest: -i, principal: -p, unapplied: -c });
+        const p = Math.min(rest, pOpen); pOpen -= p; rest -= p;
+        capped += rest;
+        alloc.push({ fee: 0, interest: 0, principal: -p, unapplied: -c, capped: rest });
       }
     }
     if (day === end) break; // end exclusive
     if (active) acc = acc.add(new D(pOpen).mul(rateOn(day)).div(10000).div(365));
   }
   if (active) settle();
-  return { defaultDay, settlements, interestAccrued: accrued, principalOpen: pOpen, interestOpen: iOpen, feeOpen: fOpen, fee, alloc };
+  return { defaultDay, settlements, interestAccrued: accrued, principalOpen: pOpen, interestOpen: iOpen, feeOpen: fOpen, fee, credit, capped, alloc };
 }
 
 function scenario(rand: () => number, idx: number) {
@@ -134,17 +135,15 @@ function scenario(rand: () => number, idx: number) {
   const calc = due + int(-10, 200);
   const ledger: LedgerEntry[] = [];
   const n = int(0, 5);
-  let paid = 0;
   const days = Array.from({ length: n }, () => due + int(-20, 210)).sort((a, b) => a - b);
   for (const d of days) {
-    if (paid > 0 && rand() < 0.2) {
-      const amt = int(1, paid);
+    if (rand() < 0.2) {
+      // Refunds may come without any payment (credit note) and may exceed what is open (capped).
+      const amt = int(1, Math.floor(inv.principalCents * 1.2) + 1);
       ledger.push({ date: isoOf(d), kind: "refund", amountCents: amt });
-      paid -= amt;
     } else {
       const amt = int(1, Math.max(1, Math.floor(inv.principalCents * 0.6)));
       ledger.push({ date: isoOf(d), kind: "payment", amountCents: amt });
-      paid += amt;
     }
   }
   return { inv, ledger, calcDate: isoOf(calc) };
@@ -156,6 +155,8 @@ describe("engine vs naive day-by-day simulator (300 seeded scenarios)", () => {
 
   it("matches within 1 cent per settlement and holds invariants", () => {
     let checkedDefaults = 0;
+    let cappedRefunds = 0;
+    let refundsWithoutPayment = 0;
     for (const [i, c] of cases.entries()) {
       const r: CalcResult = calculateClaim({ invoice: c.inv, ledger: c.ledger, calcDate: c.calcDate, ruleSet: DE_RULESET, baseRates: RATES });
       const s = simulate(c.inv, c.ledger, c.calcDate);
@@ -164,6 +165,8 @@ describe("engine vs naive day-by-day simulator (300 seeded scenarios)", () => {
 
       expect(r.defaultStart === null ? null : dayOf(r.defaultStart), ctx).toBe(s.defaultDay);
       if (s.defaultDay !== null) checkedDefaults++;
+      if (s.capped > 0) cappedRefunds++;
+      if (c.ledger.length > 0 && c.ledger[0].kind === "refund") refundsWithoutPayment++;
       expect(Math.abs(r.interestAccruedCents - s.interestAccrued), ctx).toBeLessThanOrEqual(tol);
       expect(Math.abs(r.openInterestCents - s.interestOpen), ctx).toBeLessThanOrEqual(tol);
       expect(Math.abs(r.openPrincipalCents - s.principalOpen), ctx).toBeLessThanOrEqual(tol);
@@ -174,8 +177,17 @@ describe("engine vs naive day-by-day simulator (300 seeded scenarios)", () => {
       // Invariants
       expect(r.totalDueCents, ctx).toBeGreaterThanOrEqual(0);
       expect(r.totalDueCents, ctx).toBe(r.openPrincipalCents + r.openInterestCents + r.openFeeCents);
-      for (const a of r.allocation) {
-        expect(a.toFee + a.toInterest + a.toPrincipal + a.unappliedCents, ctx).toBe(a.amountCents);
+      expect(r.creditCents, ctx).toBe(s.credit);
+      expect(r.refundCappedCents, ctx).toBe(s.capped);
+      for (const [k, a] of r.allocation.entries()) {
+        expect(a.toFee + a.toInterest + a.toPrincipal + a.unappliedCents - (a.cappedCents ?? 0), ctx).toBe(a.amountCents);
+        if (a.kind === "refund") {
+          // A refund never reopens anything: it only lowers principal or consumes credit.
+          expect(a.toFee, ctx).toBe(0);
+          expect(a.toInterest, ctx).toBe(0);
+          expect(a.toPrincipal, ctx).toBeLessThanOrEqual(0);
+          expect(a.cappedCents, ctx).toBe(s.alloc[k].capped);
+        }
       }
       const consideredSum = c.ledger
         .filter((e) => dayOf(e.date) <= dayOf(c.calcDate))
@@ -190,5 +202,7 @@ describe("engine vs naive day-by-day simulator (300 seeded scenarios)", () => {
     }
     // Sanity: the generator really produces defaults, not only trivial cases.
     expect(checkedDefaults).toBeGreaterThan(100);
+    expect(cappedRefunds).toBeGreaterThan(5);
+    expect(refundsWithoutPayment).toBeGreaterThan(5);
   });
 });

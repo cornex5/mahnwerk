@@ -148,24 +148,94 @@ describe("edge cases", () => {
     expect(r.inDefault).toBe(false);
   });
 
-  it("refund after payment reopens principal and it accrues again", () => {
+  // Refund semantics changed on Nov 3 2026 (decision by Jonas): a refund is a credit note that
+  // REDUCES THE CLAIM. It never reopens principal and never restarts interest. The two earlier
+  // tests ("refund after payment reopens principal and it accrues again" and "refund larger than
+  // paid is rejected") encoded the old negative-payment semantics and were replaced by these.
+  it("refund after payment lowers principal from the refund date; earlier interest stays", () => {
     // Payment day 10: 4000 fee, 288 interest, 35712 principal (open 64288).
-    // Refund day 20 of 10000 reopens principal: open 74288.
+    // Refund day 20 of 10000 reduces the claim: open 54288.
     // Days 10..20 on 64288: 64288 x 0.1052 x 10 / 365 = 185.2903...
-    // Days 20..30 on 74288: 74288 x 0.1052 x 10 / 365 = 214.1129...
-    // Single settlement at calcDate (refund is not a payment, no settlement): 399.4032 -> 399
+    // Days 20..30 on 54288: 54288 x 0.1052 x 10 / 365 = 156.4684...
+    // Single settlement at calcDate (a refund is not a payment, no settlement): 341.7587 -> 342
     const r = run(biz(), "2026-08-31", [
       { date: "2026-08-11", kind: "payment", amountCents: 40000 },
       { date: "2026-08-21", kind: "refund", amountCents: 10000 },
     ]);
-    expect(r.allocation[1]).toMatchObject({ kind: "refund", amountCents: -10000, toPrincipal: -10000 });
-    expect(r.openPrincipalCents).toBe(74288);
-    expect(r.openInterestCents).toBe(399);
-    expect(r.interestAccruedCents).toBe(288 + 399);
+    expect(r.allocation[1]).toEqual({
+      date: "2026-08-21", kind: "refund", amountCents: -10000, toFee: 0, toInterest: 0, toPrincipal: -10000, unappliedCents: 0, cappedCents: 0,
+    });
+    expect(r.segments.map((s) => [s.from, s.to, s.principalCents])).toEqual([
+      ["2026-08-01", "2026-08-11", 100000],
+      ["2026-08-11", "2026-08-21", 64288],
+      ["2026-08-21", "2026-08-31", 54288],
+    ]);
+    expect(r.openPrincipalCents).toBe(54288);
+    expect(r.openInterestCents).toBe(342);
+    expect(r.interestAccruedCents).toBe(288 + 342);
+    expect(r.openFeeCents).toBe(0);
+    expect(r.refundCappedCents).toBe(0);
   });
 
-  it("refund larger than paid is rejected", () => {
-    expect(() => run(biz(), "2026-08-31", [{ date: "2026-08-11", kind: "refund", amountCents: 1 }])).toThrow();
+  it("refund with nothing paid reduces the claim before default", () => {
+    // Claim 100000 reduced to 70000 on 2026-07-20. Default 2026-08-01 on 70000:
+    // 70000 x 0.1052 x 30 / 365 = 605.2602... -> 605
+    const r = run(biz(), "2026-08-31", [{ date: "2026-07-20", kind: "refund", amountCents: 30000 }]);
+    expect(r.openPrincipalCents).toBe(70000);
+    expect(r.interestAccruedCents).toBe(605);
+    expect(r.flatFeeCents).toBe(4000);
+    expect(r.totalDueCents).toBe(70000 + 605 + 4000);
+  });
+
+  it("full refund with nothing paid before default: no default, nothing owed", () => {
+    const r = run(biz(), "2026-08-31", [{ date: "2026-07-20", kind: "refund", amountCents: 100000 }]);
+    expect(r.inDefault).toBe(false);
+    expect(r.interestAccruedCents).toBe(0);
+    expect(r.flatFeeCents).toBe(0);
+    expect(r.totalDueCents).toBe(0);
+    expect(r.refundCappedCents).toBe(0);
+  });
+
+  it("refund after full payment never reopens and never creates a default; it is capped", () => {
+    const r = run(biz(), "2026-09-30", [
+      { date: "2026-07-31", kind: "payment", amountCents: 100000 },
+      { date: "2026-08-15", kind: "refund", amountCents: 50000 },
+    ]);
+    expect(r.inDefault).toBe(false);
+    expect(r.interestAccruedCents).toBe(0);
+    expect(r.flatFeeCents).toBe(0);
+    expect(r.openPrincipalCents).toBe(0);
+    expect(r.totalDueCents).toBe(0);
+    expect(r.allocation[1]).toMatchObject({ kind: "refund", amountCents: -50000, toPrincipal: 0, cappedCents: 50000 });
+    expect(r.refundCappedCents).toBe(50000);
+  });
+
+  it("refund larger than the open principal is capped; interest and fee are never reduced", () => {
+    // Payment day 10: open principal 64288, interest 288 paid, fee paid.
+    // Refund 70000 on day 20: principal 0, 5712 capped. Days 10..20 on 64288: 185.29 -> 185, then 0.
+    const r = run(biz(), "2026-08-31", [
+      { date: "2026-08-11", kind: "payment", amountCents: 40000 },
+      { date: "2026-08-21", kind: "refund", amountCents: 70000 },
+    ]);
+    expect(r.allocation[1]).toMatchObject({ toFee: 0, toInterest: 0, toPrincipal: -64288, cappedCents: 5712 });
+    expect(r.refundCappedCents).toBe(5712);
+    expect(r.openPrincipalCents).toBe(0);
+    expect(r.openInterestCents).toBe(185);
+    expect(r.openFeeCents).toBe(0);
+    expect(r.totalDueCents).toBe(185);
+    expect(r.inDefault).toBe(false);
+  });
+
+  it("refund first consumes overpayment credit", () => {
+    // Payment 110000 on day 10: credit 5712. Refund 5712 returns the overpayment.
+    const r = run(biz(), "2026-08-31", [
+      { date: "2026-08-11", kind: "payment", amountCents: 110000 },
+      { date: "2026-08-12", kind: "refund", amountCents: 5712 },
+    ]);
+    expect(r.allocation[1]).toMatchObject({ unappliedCents: -5712, toPrincipal: 0, cappedCents: 0 });
+    expect(r.creditCents).toBe(0);
+    expect(r.refundCappedCents).toBe(0);
+    expect(r.totalDueCents).toBe(0);
   });
 
   it("two partial payments", () => {
