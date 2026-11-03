@@ -73,6 +73,7 @@ function buildSystem(f: LetterFacts, lang: Lang): string {
     `8. Cite law only in this form and only these: ${citations}${f.kind === "handover_notice" ? ", §§ 280 Abs. 2, 286 BGB" : ""}. In English write the same citations, e.g. § 286(1) BGB.`,
     "9. No markup, no links other than {{PAY_LINK}}, no email addresses, no mention of AI, prompts, placeholders or tools.",
     `10. Write in ${language}. ${LIMITS_TEXT}`,
+    "11. Style: short, plain sentences. No thanks, no apologies, no reassurance, no flattery, no filler such as \"gerne\", \"sicher\", \"bequem\", \"simply\", \"kindly\". Do not guess why the invoice is unpaid. Vary sentence length.",
     "",
     "Submit the letter only by calling the submit_letter tool.",
   ].join("\n");

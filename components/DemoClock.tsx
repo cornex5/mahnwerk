@@ -66,7 +66,7 @@ export function DemoClock() {
         <Notice tone="brand" className="mt-3" title={`Clock moved to ${fmtDate(result.clock.virtualDate)}`}>
           {proposed.length > 0 ? (
             <>
-              The rules engine proposed {proposed.length} step{proposed.length === 1 ? "" : "s"}. Nothing is sent until you approve it in the{" "}
+              The rules engine proposed {proposed.length} step{proposed.length === 1 ? "" : "s"}. Review it in the{" "}
               <Link className="font-medium underline underline-offset-2" href={`/w/${data.workspace.id}/queue`}>
                 approval queue
               </Link>

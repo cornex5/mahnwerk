@@ -67,8 +67,8 @@ export function whyNowLines(step: StepRow, view: CaseView | undefined, virtualDa
         : `Product policy waits ${wait} day${wait === 1 ? "" : "s"} after the previous step.`,
     );
   } else if (step.kind === "fee_invoice") {
-    out.push("The principal is paid, but default interest or the flat fee is still owed. Nothing is sent until you approve.");
+    out.push("The principal is paid, but default interest or the flat fee is still owed.");
   }
-  out.push(`Proposed action: ${STEP_LABEL[step.kind]}. A human approves every outbound step.`);
+  out.push(`Proposed action: ${STEP_LABEL[step.kind]}. It goes out only after you approve it.`);
   return out;
 }

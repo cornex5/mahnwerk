@@ -31,7 +31,7 @@ export function SiteFooter() {
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-muted sm:px-6 md:flex-row md:items-start md:justify-between">
         <p className="max-w-3xl">
-          Mahnwerk is a hackathon demo. It is not legal advice and not a substitute for a lawyer. It runs on the PayPal sandbox only: no real money moves, no real email is sent, and all debtors and invoices are fictional.
+          Hackathon demo on the PayPal sandbox. Not legal advice.
         </p>
         <p className="flex shrink-0 items-center gap-3">
           <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-brand">

@@ -1,12 +1,12 @@
 # Mahnwerk
 
-Dunning and receivables engine for German freelancers and small firms, built on the PayPal Invoicing sandbox.
+Mahnwerk is a dunning tool for German freelancers and small firms, built on the PayPal Invoicing sandbox. It works out what a late invoice is owed under BGB 286, 288 and 367, drafts the next letter, and waits for you to approve it.
 
-Late invoices are a legal calculation, not a writing task. Mahnwerk keeps those two apart:
+Three parts do the work:
 
-- A **rules engine in plain code** decides everything that involves money or law: when default starts, how much interest accrues, whether the 40 EUR flat fee applies, how a payment or refund changes the claim (BGB 286, 288, 367).
-- **Claude** only writes and explains: it drafts the letter wording, classifies a debtor's reply, explains why a step is proposed, and answers questions about the workspace. It never sets an amount or a date and never sends anything.
-- A **human approves every outbound step.** Nothing goes out until someone clicks "Approve and execute".
+- A rules engine in plain code decides everything that involves money or law: when default starts, how much interest accrues, whether the 40 EUR flat fee applies, how a payment or refund changes the claim.
+- Claude drafts the letter wording, classifies a debtor's reply, explains why a step is proposed, and answers questions about the workspace. It never sets an amount or a date and never sends anything.
+- You approve every outbound step with a click on "Approve and execute".
 
 Live demo: https://mahnwerk.vercel.app
 

@@ -18,8 +18,8 @@ const EXAMPLE_RATE_BP = EXAMPLE.segments[0]?.rateBp ?? 0;
 
 const STEPS = [
   { n: "1", title: "Rules engine", body: "Code decides default, interest, the 40 EUR flat fee and when the next step is due. Integer cents, tested against BGB 286 and 288.", tag: "Decides" },
-  { n: "2", title: "AI drafts", body: "Claude only writes wording. Amounts, dates and citations are placeholders filled by code, and every draft is validated or replaced by a template.", tag: "Words only" },
-  { n: "3", title: "Human approval", body: "Every outbound step waits in a queue. Nothing is sent, charged or escalated without your explicit click.", tag: "You decide" },
+  { n: "2", title: "AI drafts", body: "Claude writes the wording. Code fills in amounts, dates and citations, checks the draft, and swaps in a template if the check fails.", tag: "Words only" },
+  { n: "3", title: "Human approval", body: "Every outbound step waits in a queue until you approve it.", tag: "You decide" },
   { n: "4", title: "PayPal sandbox", body: "Invoices, reminders and simulated payments run through PayPal Invoicing in the sandbox. No real money moves.", tag: "Executes" },
 ];
 
@@ -41,7 +41,7 @@ export default function Home() {
               Chase overdue invoices without guessing the law.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-              Mahnwerk watches your PayPal invoices and a deterministic rules engine decides when a debtor is in default, what interest and fees are owed, and which step comes next (BGB 286, 288). AI only drafts the wording, and a human approves every step before anything goes out.
+              Mahnwerk watches your PayPal invoices. Plain code works out when a debtor is in default, what interest and fees are owed, and which step is next (BGB 286, 288). Claude writes the letter. You read it and approve it before anything goes out.
             </p>
             <div className="mt-7">
               <StartButtons />

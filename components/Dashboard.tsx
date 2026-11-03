@@ -59,7 +59,7 @@ export function Dashboard() {
             className="flex items-center justify-between gap-3 rounded-xl border border-ai-line bg-ai-soft px-4 py-3 text-sm hover:border-ai"
           >
             <span>
-              <strong>{plural(proposed.length, "step")}</strong> waiting for your approval. Nothing goes out until you click.
+              <strong>{plural(proposed.length, "step")}</strong> waiting for your approval.
             </span>
             <span className="font-medium text-ai">Open queue</span>
           </Link>

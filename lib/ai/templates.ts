@@ -40,8 +40,8 @@ const DE: Phrases = {
   greetingBusiness: "Sehr geehrte Damen und Herren,",
   closing: "Mit freundlichen Grüßen\n{{CREDITOR}}",
   alreadyPaid: "Sollten Sie die Zahlung bereits veranlasst haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.",
-  contactConsumer: "Wenn Ihnen die Zahlung gerade Schwierigkeiten bereitet, melden Sie sich bitte bei uns, damit wir gemeinsam eine Lösung finden.",
-  contactBusiness: "Bei Rückfragen zur Rechnung stehen wir Ihnen gern zur Verfügung.",
+  contactConsumer: "Wenn Sie die Zahlung gerade nicht leisten können, melden Sie sich bitte bei uns.",
+  contactBusiness: "Bei Rückfragen zur Rechnung melden Sie sich bitte bei uns.",
   inDefault: "Sie befinden sich mit der Zahlung in Verzug (§ 286 BGB).",
   defaultByThisDemand: "Mit diesem Schreiben fordern wir Sie zur Zahlung auf. Mit Zugang dieser Mahnung befinden Sie sich in Verzug (§ 286 Abs. 1 BGB).",
   furtherInterest: "Bis zum Zahlungseingang fallen weitere gesetzliche Verzugszinsen an.",
@@ -54,8 +54,8 @@ const DE: Phrases = {
   payBy: "Bitte zahlen Sie den Gesamtbetrag von {{TOTAL}} bis spätestens {{DEADLINE}} über diesen Link: {{PAY_LINK}}",
   reminder: {
     subject: "Zahlungserinnerung zur Rechnung {{INVOICE_NUMBER}}",
-    opening: "sicher ist es im Alltag untergegangen: Für unsere Rechnung {{INVOICE_NUMBER}} konnten wir bisher keinen vollständigen Zahlungseingang feststellen.",
-    payBy: "Bitte begleichen Sie den Betrag von {{TOTAL}} bis zum {{DEADLINE}} bequem über diesen Link: {{PAY_LINK}}",
+    opening: "für unsere Rechnung {{INVOICE_NUMBER}} haben wir bisher keinen vollständigen Zahlungseingang festgestellt.",
+    payBy: "Bitte begleichen Sie den Betrag von {{TOTAL}} bis zum {{DEADLINE}} über diesen Link: {{PAY_LINK}}",
   },
   mahnung1: {
     subject: "Mahnung zur Rechnung {{INVOICE_NUMBER}}",
@@ -80,7 +80,7 @@ const EN: Phrases = {
   greetingBusiness: "Dear Sir or Madam,",
   closing: "Kind regards,\n{{CREDITOR}}",
   alreadyPaid: "If you have already arranged payment, please disregard this letter.",
-  contactConsumer: "If paying is difficult for you at the moment, please get in touch with us so that we can find a solution together.",
+  contactConsumer: "If paying is difficult at the moment, please contact us.",
   contactBusiness: "If you have any questions about the invoice, please contact us.",
   inDefault: "You are in default of payment (§ 286 BGB).",
   defaultByThisDemand: "This letter is a formal demand for payment. On receipt of this demand you are in default (§ 286(1) BGB).",
@@ -94,7 +94,7 @@ const EN: Phrases = {
   payBy: "Please pay the total amount of {{TOTAL}} by {{DEADLINE}} at the latest, using this link: {{PAY_LINK}}",
   reminder: {
     subject: "Payment reminder for invoice {{INVOICE_NUMBER}}",
-    opening: "This may simply have been overlooked: we have not yet received full payment for our invoice {{INVOICE_NUMBER}}.",
+    opening: "We have not yet received full payment for our invoice {{INVOICE_NUMBER}}.",
     payBy: "Please pay the amount of {{TOTAL}} by {{DEADLINE}} using this link: {{PAY_LINK}}",
   },
   mahnung1: {

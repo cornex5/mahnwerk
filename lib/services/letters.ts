@@ -67,7 +67,7 @@ function lines(f: LetterFacts): string[] {
     if (f.openInterestCents > 0) out.push(`Verzugszinsen: ${m(f.openInterestCents)}`);
     if (f.openFeeCents > 0) out.push(`Verzugspauschale (§ 288 Abs. 5 BGB): ${m(f.openFeeCents)}`);
     out.push(`Gesamt: ${m(f.totalDueCents)}`, "");
-    if (f.kind === "reminder") out.push("Sicher haben Sie die Zahlung nur übersehen. Bitte begleichen Sie den Betrag in den nächsten Tagen.");
+    if (f.kind === "reminder") out.push("Bitte begleichen Sie den Betrag in den nächsten Tagen.");
     if (f.kind === "mahnung1") out.push("Wir bitten Sie, den Gesamtbetrag innerhalb von 7 Tagen zu zahlen.");
     if (f.kind === "mahnung2") out.push("Bitte zahlen Sie den Gesamtbetrag innerhalb von 10 Tagen. Danach behalten wir uns weitere Schritte vor.");
     if (f.kind === "handover") out.push("Ohne Zahlung innerhalb von 14 Tagen geben wir die Forderung ab (gerichtliches Mahnverfahren oder Inkasso).");
@@ -84,7 +84,7 @@ function lines(f: LetterFacts): string[] {
   if (f.openInterestCents > 0) out.push(`Default interest: ${m(f.openInterestCents)}`);
   if (f.openFeeCents > 0) out.push(`Flat fee (§ 288(5) BGB): ${m(f.openFeeCents)}`);
   out.push(`Total: ${m(f.totalDueCents)}`, "");
-  if (f.kind === "reminder") out.push("This may simply have been overlooked. Please settle the amount in the next few days.");
+  if (f.kind === "reminder") out.push("Please settle the amount in the next few days.");
   if (f.kind === "mahnung1") out.push("Please pay the total within 7 days.");
   if (f.kind === "mahnung2") out.push("Please pay the total within 10 days. After that we reserve further steps.");
   if (f.kind === "handover") out.push("Without payment within 14 days we will hand the claim over (court dunning procedure or collection).");
