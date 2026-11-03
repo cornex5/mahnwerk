@@ -98,6 +98,17 @@ describe("draftLetter with a fake model", () => {
     expect(r.text).toContain("total of EUR 1,283.10, including the flat fee of EUR 40.00, by 20 November 2026");
   });
 
+  it("turns a literal backslash-n written by the model into a real line break", async () => {
+    const d: LetterDraft = { ...goodDraftDe, closing: "Mit freundlichen Grüßen\\n{{CREDITOR}}" };
+    expect(d.closing).toContain("\\n");
+    const model = new FakeModel([toolResponse("submit_letter", d)]);
+    const { gateway } = fakeGateway(model);
+    const r = await draftLetter(facts(), "de", { gateway, ctx });
+    expect(r.source).toBe("ai");
+    expect(r.text).not.toContain("\\n");
+    expect(r.text).toMatch(/Grüßen\n/);
+  });
+
   it("never shows real amounts or names to the model", async () => {
     const model = new FakeModel([toolResponse("submit_letter", goodDraftDe)]);
     const { gateway } = fakeGateway(model);
