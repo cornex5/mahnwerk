@@ -56,6 +56,14 @@ function statusOf(err: unknown): number | null {
   return null;
 }
 
+function safeDetail(err: unknown): string {
+  const msg = typeof err === "object" && err !== null && "message" in err ? String((err as { message: unknown }).message) : "";
+  return msg
+    .replace(/sk-[A-Za-z0-9_-]{8,}/g, "[redacted]")
+    .replace(/\s+/g, " ")
+    .slice(0, 300);
+}
+
 function isRetryableStatus(status: number | null): boolean {
   return status === 429 || (status !== null && status >= 500 && status <= 599);
 }
@@ -136,8 +144,11 @@ export function createAiClient(opts: CreateAiClientOptions = {}): AiClient {
           await sleep(RETRY_DELAY_MS);
           continue;
         }
-        // Never forward the SDK message: it may echo request details.
-        throw new AiClientError(status === null ? "Model request failed" : `Model request failed with status ${status}`, status, retryable);
+        // Never forward the raw SDK message: it may echo request details. For 4xx only, keep a short,
+        // key-redacted excerpt of the API's own validation message so misconfiguration is diagnosable.
+        const base = status === null ? "Model request failed" : `Model request failed with status ${status}`;
+        const detail = status !== null && status >= 400 && status < 500 && status !== 429 ? safeDetail(err) : "";
+        throw new AiClientError(detail ? `${base}: ${detail}` : base, status, retryable);
       }
     }
   }

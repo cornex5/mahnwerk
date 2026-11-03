@@ -78,7 +78,8 @@ describe("AI client", () => {
     const t = new FakeTransport([httpError(400)]);
     const err = (await createAiClient({ env, transport: t, sleep: noSleep }).complete({ system: "", messages: [] }).catch((e) => e)) as Error;
     expect(t.calls).toHaveLength(1);
-    expect(err.message).toBe("Model request failed with status 400");
+    expect(err.message).toMatch(/^Model request failed with status 400/);
+    expect(err.message.length).toBeLessThan(400);
     expect(JSON.stringify(err)).not.toContain("SECRET");
     expect(String(err.stack)).not.toContain("SECRET");
   });
