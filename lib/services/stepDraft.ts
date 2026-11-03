@@ -106,7 +106,7 @@ export type DraftOutcome =
  * for AI problems (they come back as a "template" outcome); only unknown steps raise not_found.
  * With force=false an existing validated AI draft is kept. A fallback never overwrites a stored AI draft.
  */
-export async function generateStepDraft(deps: ServiceDeps, stepId: string, opts: { keepExisting?: boolean } = {}): Promise<DraftOutcome> {
+export async function generateStepDraft(deps: ServiceDeps, stepId: string, opts: { keepExisting?: boolean; timeoutMs?: number } = {}): Promise<DraftOutcome> {
   if (!deps.ai) return { status: "template", reason: "no_ai", issues: [] };
   const step = await deps.store.getStep(stepId);
   if (!step) throw new ServiceError("not_found", "Step not found");
@@ -121,7 +121,7 @@ export async function generateStepDraft(deps: ServiceDeps, stepId: string, opts:
     const gateway = deps.ai.gateway;
     result = await withTimeout(
       draftLetter(ctx.facts, ctx.lang, { gateway, ctx: { workspaceId: step.workspace_id, stepId: step.id } }),
-      deps.ai.draftTimeoutMs ?? DEFAULT_DRAFT_TIMEOUT_MS,
+      opts.timeoutMs ?? deps.ai.draftTimeoutMs ?? DEFAULT_DRAFT_TIMEOUT_MS,
     );
   } catch (err) {
     const message = safeMessage(err);

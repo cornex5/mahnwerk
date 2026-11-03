@@ -43,6 +43,8 @@ export interface RedraftResult {
   fallbackReason: Exclude<DraftOutcome, { status: "ai" }>["reason"] | null;
 }
 
+const REDRAFT_TIMEOUT_MS = 40_000;
+
 /** Regenerates the letter draft of a step that is still proposed. Falls back to the template on any AI problem. */
 export async function redraftStep(deps: ServiceDeps, actorUid: string, stepId: string): Promise<RedraftResult> {
   const step = await deps.store.getStep(stepId);
@@ -51,7 +53,8 @@ export async function redraftStep(deps: ServiceDeps, actorUid: string, stepId: s
   if (step.status !== "proposed") throw new ServiceError("conflict", `Only a proposed step can be redrafted (status is ${step.status})`);
   if (!isDunningKind(step.kind)) throw new ServiceError("invalid_input", `A ${step.kind} step has no letter draft`);
   requireAi(deps);
-  const outcome = await generateStepDraft(deps, stepId);
+  // An explicit redraft may wait longer than the automatic draft made while a step is proposed.
+  const outcome = await generateStepDraft(deps, stepId, { timeoutMs: deps.ai?.draftTimeoutMs ?? REDRAFT_TIMEOUT_MS });
   if (outcome.status === "template" && outcome.reason === "not_proposed") throw new ServiceError("conflict", "The step changed while drafting");
   const fresh = (await deps.store.getStep(stepId)) as FullStepRow;
   return outcome.status === "ai" ? { step: fresh, source: "ai", fallbackReason: null } : { step: fresh, source: "template", fallbackReason: outcome.reason };

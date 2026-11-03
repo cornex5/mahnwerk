@@ -6,7 +6,7 @@ import { handleRoute, idParam } from "@/lib/api/http";
 import { EmptyBody } from "@/lib/api/schemas";
 import { routeDeps } from "@/lib/api/serverDeps";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request, ctx: RouteContext<"/api/steps/[id]/draft">): Promise<Response> {
   const { id } = await ctx.params;
