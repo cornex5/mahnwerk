@@ -56,7 +56,7 @@ export class ServiceCopilotStore implements CopilotStore {
   private async summary(c: FullCaseRow, inv: FullInvoiceRow, ws: WorkspaceRow): Promise<CopilotCaseSummary> {
     const debtor = await this.deps.store.getDebtor(inv.debtor_id);
     const virtualDate = virtualDateFor(ws, this.deps.now());
-    const plan = planNextStage({ state: c.state, dueDate: inv.due_date, lastStepDate: await this.deps.store.lastStepTransitionDate(c.id), virtualDate });
+    const plan = planNextStage({ state: c.state, dueDate: inv.due_date, lastStepDate: await this.deps.store.lastStepTransitionDate(c.id), virtualDate, holdUntil: c.hold_until });
     return {
       id: c.id,
       invoice_id: inv.id,
@@ -151,7 +151,7 @@ export class ServiceCopilotStore implements CopilotStore {
 
     // Same stage plan as the service layer: only the next stage, and only when its waiting days are over.
     const virtualDate = virtualDateFor(s.ws, this.deps.now());
-    const plan = planNextStage({ state: s.c.state, dueDate: s.inv.due_date, lastStepDate: await this.deps.store.lastStepTransitionDate(s.c.id), virtualDate });
+    const plan = planNextStage({ state: s.c.state, dueDate: s.inv.due_date, lastStepDate: await this.deps.store.lastStepTransitionDate(s.c.id), virtualDate, holdUntil: s.c.hold_until });
     if (plan.kind !== row.kind || !plan.dueNow) {
       throw new ToolRefusal(
         plan.kind

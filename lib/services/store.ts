@@ -79,6 +79,8 @@ export type PendingInvoiceInsert = Omit<FullInvoiceRow, "id" | "paypal_invoice_i
 
 export interface FullCaseRow extends CaseRow {
   fee_invoice_paypal_id: string | null;
+  /** The planner proposes nothing and steps refuse to send while the virtual date is before this date. */
+  hold_until: string | null;
 }
 
 export interface FullStepRow {
@@ -164,6 +166,8 @@ export interface ServiceStore extends ReconcileStore {
   getCase(id: string): Promise<FullCaseRow | null>;
   getCaseForInvoice(invoiceId: string): Promise<FullCaseRow | null>;
   listCases(workspaceId: string): Promise<FullCaseRow[]>;
+  /** Sets or clears (null) the hold date of a case. */
+  setCaseHold(caseId: string, holdUntil: string | null): Promise<void>;
   /** Sets fee_invoice_paypal_id only if still null. */
   setCaseFeeInvoiceId(caseId: string, paypalInvoiceId: string): Promise<void>;
   /** Virtual date of the latest step transition (reminder, Mahnung, handover) of the case, or null. */

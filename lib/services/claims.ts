@@ -29,6 +29,8 @@ export interface StagePlan {
   /** Earliest virtual date the stage may be sent (or the date the case becomes overdue). */
   earliestDate: string | null;
   dueNow: boolean;
+  /** Set when a human hold is the reason nothing is due. */
+  heldUntil?: string;
 }
 
 /**
@@ -42,6 +44,8 @@ export function planNextStage(args: {
   lastStepDate: string | null;
   virtualDate: string;
   ruleSet?: RuleSet;
+  /** Case is on hold until this date (a human decision); no stage is due before it. */
+  holdUntil?: string | null;
 }): StagePlan {
   const rs = args.ruleSet ?? DE_RULESET;
   const firstOverdue = addDays(args.dueDate, 1);
@@ -49,6 +53,13 @@ export function planNextStage(args: {
     const earliestDate = earliestStageDate(kind, prev, rs);
     return { kind, becomesOverdue, earliestDate, dueNow: diffDays(earliestDate, args.virtualDate) >= 0 };
   };
+  const base = planBase();
+  if (args.holdUntil && base.kind && diffDays(args.holdUntil, args.virtualDate) < 0) {
+    return { ...base, dueNow: false, earliestDate: args.holdUntil, heldUntil: args.holdUntil };
+  }
+  return base;
+
+  function planBase(): StagePlan {
   switch (args.state) {
     case "open":
       if (diffDays(firstOverdue, args.virtualDate) < 0) return { kind: null, becomesOverdue: false, earliestDate: firstOverdue, dueNow: false };
@@ -63,6 +74,7 @@ export function planNextStage(args: {
       return at("handover", args.lastStepDate ?? firstOverdue);
     default:
       return { kind: null, becomesOverdue: false, earliestDate: null, dueNow: false };
+  }
   }
 }
 

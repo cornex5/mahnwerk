@@ -21,7 +21,7 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - Supabase project mahnwerk (eu-central-1), Vercel project mahnwerk, auto-deploy on push to main.
 - Demo workspaces expire after 48 hours and are purged 7 days later (pg_cron).
 - AI budget: 40 calls per demo workspace, 150 per day for the shared example workspace, 500 per day for everything.
-- Migrations 0001 to 0006 are applied in order. The example workspace is seeded by scripts/seed-golden-sql.ts.
+- Migrations 0001 to 0007 are applied in order. The example workspace is seeded by scripts/seed-golden-sql.ts.
 
 ## Checks
 npm test, npm run typecheck, npm run lint, npm run build. All tests run offline with fakes.

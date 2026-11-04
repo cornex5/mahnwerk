@@ -79,6 +79,7 @@ export interface CaseRow {
   default_start: string | null;
   next_step_kind: string | null;
   next_step_due: string | null;
+  hold_until: string | null;
   updated_at: string;
   created_at: string;
 }

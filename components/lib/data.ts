@@ -28,7 +28,7 @@ export async function loadWorkspaceData(id: string): Promise<WorkspaceData> {
       .select("id, workspace_id, debtor_id, number, issue_date, due_date, fixed_calendar_due, default_warning_printed, received_on, principal_cents, paypal_status, paypal_invoice_id")
       .eq("workspace_id", id),
     sb.from("ledger").select("id, workspace_id, invoice_id, kind, amount_cents, booked_on, paypal_ref, source, created_at").eq("workspace_id", id).order("booked_on"),
-    sb.from("dunning_cases").select("id, workspace_id, invoice_id, state, prev_state, paused_reason, default_start, next_step_kind, next_step_due, updated_at, created_at").eq("workspace_id", id),
+    sb.from("dunning_cases").select("id, workspace_id, invoice_id, state, prev_state, paused_reason, default_start, next_step_kind, next_step_due, hold_until, updated_at, created_at").eq("workspace_id", id),
     sb
       .from("steps")
       .select("id, workspace_id, case_id, kind, facts, draft, validation, status, approved_at, sent_via, sent_at, created_at")

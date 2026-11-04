@@ -33,6 +33,7 @@ export class MemoryServiceStore extends MemoryStore implements ServiceStore {
   debtors = new Map<string, DebtorRow>();
   fullInvoices = new Map<string, FullInvoiceRow>();
   feeInvoiceIds = new Map<string, string | null>();
+  holds = new Map<string, string | null>();
   quota = new Map<string, number>();
   /** Test hooks to inject database failures. */
   failNext: Partial<Record<"finalizeInvoice" | "completeStep" | "setInvoicePayPalId" | "insertPendingInvoice", Error>> = {};
@@ -212,7 +213,7 @@ export class MemoryServiceStore extends MemoryStore implements ServiceStore {
 
   private fullCase(id: string): FullCaseRow | null {
     const c = this.cases.get(id);
-    return c ? { ...c, fee_invoice_paypal_id: this.feeInvoiceIds.get(id) ?? null } : null;
+    return c ? { ...c, fee_invoice_paypal_id: this.feeInvoiceIds.get(id) ?? null, hold_until: this.holds.get(id) ?? null } : null;
   }
 
   async getCase(id: string) {
@@ -226,6 +227,10 @@ export class MemoryServiceStore extends MemoryStore implements ServiceStore {
 
   async listCases(workspaceId: string) {
     return [...this.cases.values()].filter((c) => c.workspace_id === workspaceId).map((c) => this.fullCase(c.id)!);
+  }
+
+  async setCaseHold(caseId: string, holdUntil: string | null) {
+    this.holds.set(caseId, holdUntil);
   }
 
   async setCaseFeeInvoiceId(caseId: string, paypalInvoiceId: string) {

@@ -102,6 +102,8 @@ flowchart LR
 - `lib/paypal`: small REST client with schema checks on every response.
 - `supabase/migrations`: schema, row level security, and the `mw_transition_case` function.
 
+Case page extras: a PayPal evidence panel with a QR code of the invoice link, a what-if calculator (claim at another date, no data changes), and a hold button (7, 14 or 30 days) for after a dispute or extension request. An approval is bound to the exact wording shown; if the claim changed since the draft was written, the template with current figures is used.
+
 Case states: open, overdue, reminded, mahnung1, mahnung2, handover_ready, paused_dispute, closed_paid, closed_refunded, closed_cancelled. A paid case with interest still owed closes as paid and proposes a fee invoice for approval.
 
 ## Legal basis and limits
@@ -110,7 +112,7 @@ Mahnwerk models German default rules for a Kleinunternehmer (no VAT, § 19 UStG)
 
 - Default interest is the Basiszinssatz (1.52 percent from 1 July 2026) plus 5 points for consumers and 9 points otherwise (§ 288 (1), (2) BGB).
 - The 40 EUR flat fee applies only when the debtor is not a consumer (§ 288 (5) BGB).
-- Default starts at the latest 30 days after due date (§ 286 (3) BGB, simplified: the date of invoice receipt is assumed to equal the due date). For consumers this needs a warning in the invoice, which the demo does not model.
+- Default starts on day 31 after the due date (the 30-day period ends with day 30, §§ 187, 188 BGB) (§ 286 (3) BGB, simplified: the date of invoice receipt is assumed to equal the due date). For consumers this needs a warning in the invoice, which the demo does not model.
 - A Mahnung is treated as received on the day it is sent. In reality it takes effect on receipt.
 - Waiting days between steps are product policy, not law.
 - How a payment is allocated across fee, interest and principal (§ 367 BGB) is a modelling choice.

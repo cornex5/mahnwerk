@@ -5,6 +5,7 @@ import { CaseTimeline } from "./CaseTimeline";
 import { ClaimBreakdown } from "./ClaimBreakdown";
 import { eur, fmtDate, fmtTs } from "./lib/format";
 import { PayPalPanel } from "./PayPalPanel";
+import { HoldPanel } from "./HoldPanel";
 import { ReplyBox } from "./ReplyBox";
 import { SimulatorPanel } from "./SimulatorPanel";
 import { StepCard } from "./StepCard";
@@ -118,6 +119,7 @@ export function CaseDetail({ caseId }: { caseId: string }) {
           <PayPalPanel view={view} />
           <SimulatorPanel view={view} />
           <ReplyBox caseId={view.c.id} />
+          <HoldPanel caseId={view.c.id} holdUntil={view.c.hold_until} closed={view.c.state.startsWith("closed")} />
           <CaseTimeline audit={audit} ledger={ledger} />
         </div>
       </div>

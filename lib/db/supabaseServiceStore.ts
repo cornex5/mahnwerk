@@ -27,7 +27,7 @@ const CREDITOR_COLS = "id, workspace_id, name, address, kleinunternehmer, lang";
 const DEBTOR_COLS = "id, workspace_id, name, email, type, lang";
 const INVOICE_COLS =
   "id, workspace_id, creditor_id, debtor_id, paypal_invoice_id, number, currency, issue_date, due_date, fixed_calendar_due, default_warning_printed, received_on, principal_cents, request_key";
-const CASE_COLS = "id, workspace_id, invoice_id, state, prev_state, paused_reason, version, fee_invoice_paypal_id";
+const CASE_COLS = "id, workspace_id, invoice_id, state, prev_state, paused_reason, version, fee_invoice_paypal_id, hold_until";
 const STEP_COLS =
   "id, workspace_id, case_id, kind, status, facts, draft, validation, approved_by, approved_at, sent_via, sent_at, exec_token, exec_started_at, created_at";
 const STEP_TRANSITION_ACTIONS = ["case.reminder_sent", "case.mahnung1_sent", "case.mahnung2_sent", "case.handover_prepared"];
@@ -181,6 +181,11 @@ export class SupabaseServiceStore extends SupabaseStore implements ServiceStore 
     const r = await this.sb.from("dunning_cases").select(CASE_COLS).eq("workspace_id", workspaceId).order("created_at");
     if (r.error) fail("read dunning_cases", r.error);
     return r.data as FullCaseRow[];
+  }
+
+  async setCaseHold(caseId: string, holdUntil: string | null) {
+    const r = await this.sb.from("dunning_cases").update({ hold_until: holdUntil }).eq("id", caseId);
+    if (r.error) fail("update dunning_cases", r.error);
   }
 
   async setCaseFeeInvoiceId(caseId: string, paypalInvoiceId: string) {

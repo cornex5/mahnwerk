@@ -83,7 +83,7 @@ export async function explainStepFor(deps: ServiceDeps, actorUid: string, stepId
   const calc = claimAt(inv, claimFacts, await deps.store.listLedger(inv.id), today);
   const siblings = await deps.store.listSteps(c.id);
   const previous = siblings.filter((s) => s.id !== step.id && s.status === "sent" && isDunningKind(s.kind)).at(-1);
-  const plan = planNextStage({ state: c.state, dueDate: inv.due_date, lastStepDate: await deps.store.lastStepTransitionDate(c.id), virtualDate: today });
+  const plan = planNextStage({ state: c.state, dueDate: inv.due_date, lastStepDate: await deps.store.lastStepTransitionDate(c.id), virtualDate: today, holdUntil: c.hold_until });
   const facts = explainFactsFromCalc(calc, {
     stepKind: step.kind as ProposableStepKind,
     lang: debtor.lang,

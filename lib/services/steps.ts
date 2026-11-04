@@ -9,6 +9,7 @@
 //   separate PayPal sandbox invoice for interest and fee (sent_via 'paypal_invoice'). Mahnung 2
 //   itself does not create one (PROJECT_STATE: the fee invoice is its own approved step).
 
+import { addDays } from "../rules/dates";
 import { isClosed, transition, type CaseSnapshot } from "../cases/stateMachine";
 import { centsToMoney } from "../paypal/money";
 import { PayPalApiError, PayPalSchemaError } from "../paypal/client";
@@ -123,10 +124,10 @@ export async function proposeNextStep(deps: ServiceDeps, caseId: string): Promis
   const virtualDate = virtualDateFor(ctx.ws, deps.now());
   let c = ctx.c;
   const lastStepDate = await deps.store.lastStepTransitionDate(c.id);
-  let plan = planNextStage({ state: c.state, dueDate: ctx.inv.due_date, lastStepDate, virtualDate });
+  let plan = planNextStage({ state: c.state, dueDate: ctx.inv.due_date, lastStepDate, virtualDate, holdUntil: c.hold_until });
   if (plan.becomesOverdue) {
     c = await becomeOverdue(deps, c, virtualDate);
-    plan = planNextStage({ state: c.state, dueDate: ctx.inv.due_date, lastStepDate, virtualDate });
+    plan = planNextStage({ state: c.state, dueDate: ctx.inv.due_date, lastStepDate, virtualDate, holdUntil: c.hold_until });
   }
   if (!plan.kind || !plan.dueNow) return { caseId, plan, step: null, created: false };
 
@@ -355,9 +356,9 @@ async function executeDunningStep(
   if (c0.state !== spec.from) {
     throw new ServiceError("not_executable", `A ${kind} can only be sent from state ${spec.from} (case is ${c0.state})`);
   }
-  const plan = planNextStage({ state: c0.state, dueDate: inv.due_date, lastStepDate: await deps.store.lastStepTransitionDate(c0.id), virtualDate });
+  const plan = planNextStage({ state: c0.state, dueDate: inv.due_date, lastStepDate: await deps.store.lastStepTransitionDate(c0.id), virtualDate, holdUntil: c0.hold_until });
   if (plan.kind !== kind || !plan.dueNow) {
-    throw new ServiceError("not_executable", `The waiting period for ${kind} ends on ${plan.earliestDate}`);
+    throw new ServiceError("not_executable", plan.heldUntil ? `The case is on hold until ${plan.heldUntil}` : `The waiting period for ${kind} ends on ${plan.earliestDate}`);
   }
 
   const letterFacts = await letterFactsFor(deps, kind, step, inv, virtualDate);
@@ -559,4 +560,36 @@ function feeLines(f: Record<string, unknown>, total: number, lang: "de" | "en"):
       { name: names.principal, cents: n("openPrincipalCents") },
     ]) ?? [{ name: lang === "de" ? "Verzugskosten" : "Default costs", cents: total }]
   );
+}
+
+// ------------------------------------------------------------------ hold
+
+export const HOLD_MIN_DAYS = 1;
+export const HOLD_MAX_DAYS = 60;
+
+/**
+ * A human puts a case on hold for a number of days from the workspace's virtual date, or clears the
+ * hold (days = null). While held, nothing new is proposed and an approved step refuses to send.
+ */
+export async function setCaseHold(deps: ServiceDeps, actorUid: string, caseId: string, days: number | null): Promise<{ caseId: string; holdUntil: string | null }> {
+  const c = await deps.store.getCase(caseId);
+  if (!c) throw new ServiceError("not_found", "Case not found");
+  const ws = await loadMutableWorkspace(deps, c.workspace_id, actorUid);
+  if (days !== null && (!Number.isSafeInteger(days) || days < HOLD_MIN_DAYS || days > HOLD_MAX_DAYS)) {
+    throw new ServiceError("invalid_input", `days must be an integer between ${HOLD_MIN_DAYS} and ${HOLD_MAX_DAYS}`);
+  }
+  if (isClosed(c.state)) throw new ServiceError("conflict", `The case is ${c.state}`);
+  const virtualDate = virtualDateFor(ws, deps.now());
+  const holdUntil = days === null ? null : addDays(virtualDate, days);
+  await deps.store.setCaseHold(c.id, holdUntil);
+  await deps.store.insertAudit({
+    workspace_id: c.workspace_id,
+    case_id: c.id,
+    invoice_id: c.invoice_id,
+    actor: "user",
+    action: holdUntil ? "case.hold_set" : "case.hold_cleared",
+    virtual_date: virtualDate,
+    details: { hold_until: holdUntil, previous: c.hold_until, actor_uid: actorUid },
+  });
+  return { caseId: c.id, holdUntil };
 }

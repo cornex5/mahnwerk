@@ -4,7 +4,7 @@ import { createAndSendInvoice } from "./invoices";
 import { planNextStage } from "./claims";
 import { simulate } from "./simulator";
 import { draftFingerprint } from "./draftFingerprint";
-import { approveStep, assertApproved, executeStep, proposeNextStep, refreshProposals, rejectStep } from "./steps";
+import { approveStep, assertApproved, executeStep, proposeNextStep, refreshProposals, rejectStep, setCaseHold } from "./steps";
 import { OTHER_USER, USER, apiError, makeServiceWorld, type ServiceWorld } from "./testkit";
 import { advanceClock } from "./workspaces";
 import type { FullStepRow } from "./store";
@@ -413,5 +413,37 @@ describe("fee invoice step", () => {
     expect(caseOf(w, caseId).state).toBe("closed_paid");
     expect((await executeStep(w.deps, USER, fee.id)).replayed).toBe(true);
     expect(w.paypal.invoices.size).toBe(2);
+  });
+});
+
+describe("case hold", () => {
+  it("planner is not due while held and due again after the date", () => {
+    const base = { dueDate: "2026-11-10", lastStepDate: "2026-11-12", state: "reminded" as const };
+    expect(planNextStage({ ...base, virtualDate: "2026-11-25", holdUntil: "2026-11-30" })).toMatchObject({ kind: "mahnung1", dueNow: false, heldUntil: "2026-11-30" });
+    expect(planNextStage({ ...base, virtualDate: "2026-11-30", holdUntil: "2026-11-30" })).toMatchObject({ kind: "mahnung1", dueNow: true });
+  });
+
+  it("proposes nothing while held, and an approved step refuses to send", async () => {
+    const w = await makeServiceWorld();
+    const caseId = await newCase(w);
+    await advanceClock(w.deps, w.ws.id, USER, 8);
+    const s = await proposeAt(w, caseId);
+    await approveStep(w.deps, USER, s.id);
+    const h = await setCaseHold(w.deps, USER, caseId, 7);
+    expect(h.holdUntil).toBe("2026-11-18");
+    expect(w.store.audit.some((a) => a.action === "case.hold_set")).toBe(true);
+    expect(await errCode(executeStep(w.deps, USER, s.id))).toBe("not_executable");
+    expect(w.paypal.calls.some((c) => c.op === "remindInvoice")).toBe(false);
+    await setCaseHold(w.deps, USER, caseId, null);
+    const r = await executeStep(w.deps, USER, s.id);
+    expect(r.step.status).toBe("sent");
+  });
+
+  it("rejects bad days and other users", async () => {
+    const w = await makeServiceWorld();
+    const caseId = await newCase(w);
+    expect(await errCode(setCaseHold(w.deps, USER, caseId, 0))).toBe("invalid_input");
+    expect(await errCode(setCaseHold(w.deps, USER, caseId, 61))).toBe("invalid_input");
+    expect(await errCode(setCaseHold(w.deps, OTHER_USER, caseId, 7))).not.toBe("resolved");
   });
 });
