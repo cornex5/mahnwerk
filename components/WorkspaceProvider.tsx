@@ -30,7 +30,7 @@ export function useWorkspace(): Ctx {
 
 type Phase = { kind: "loading" } | { kind: "error"; message: string; notFound: boolean; config: boolean } | { kind: "ready"; data: WorkspaceData; uid: string; at: number };
 
-export function WorkspaceProvider({ id, children }: { id: string; children: ReactNode }) {
+export function WorkspaceProvider({ id, children, placeholder }: { id: string; children: ReactNode; placeholder?: ReactNode }) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [attempt, setAttempt] = useState(0);
   const uidRef = useRef<string | null>(null);
@@ -99,6 +99,7 @@ export function WorkspaceProvider({ id, children }: { id: string; children: Reac
   }, [phase, refresh]);
 
   if (phase.kind === "loading") {
+    if (placeholder) return <div aria-busy="true">{placeholder}</div>;
     return (
       <div className="mx-auto max-w-7xl space-y-4 px-4 py-8 sm:px-6" aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading workspace</span>

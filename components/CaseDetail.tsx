@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CaseTimeline } from "./CaseTimeline";
 import { ClaimBreakdown } from "./ClaimBreakdown";
 import { eur, fmtDate, fmtTs } from "./lib/format";
+import { PayPalPanel } from "./PayPalPanel";
 import { ReplyBox } from "./ReplyBox";
 import { SimulatorPanel } from "./SimulatorPanel";
 import { StepCard } from "./StepCard";
@@ -112,6 +113,7 @@ export function CaseDetail({ caseId }: { caseId: string }) {
         </div>
 
         <div className="min-w-0 space-y-6">
+          <PayPalPanel view={view} />
           <SimulatorPanel view={view} />
           <ReplyBox caseId={view.c.id} />
           <CaseTimeline audit={audit} ledger={ledger} />
