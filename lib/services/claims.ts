@@ -55,7 +55,8 @@ export function planNextStage(args: {
   };
   const base = planBase();
   if (args.holdUntil && base.kind && diffDays(args.holdUntil, args.virtualDate) < 0) {
-    return { ...base, dueNow: false, earliestDate: args.holdUntil, heldUntil: args.holdUntil };
+    const later = base.earliestDate && base.earliestDate > args.holdUntil ? base.earliestDate : args.holdUntil;
+    return { ...base, dueNow: false, earliestDate: later, heldUntil: args.holdUntil };
   }
   return base;
 

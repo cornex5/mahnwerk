@@ -35,7 +35,7 @@ export function HoldPanel({ caseId, holdUntil, closed }: { caseId: string; holdU
       </p>
       {active && (
         <Notice tone="warn" className="mt-3">
-          On hold until {fmtDate(holdUntil)}.
+          On hold. Sending is possible again from {fmtDate(holdUntil)}.
         </Notice>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
