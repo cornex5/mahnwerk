@@ -18,3 +18,16 @@ export interface DraftBasis {
 export function draftBasisOf(f: LetterFacts, virtualDate: string): DraftBasis {
   return { virtual_date: virtualDate, principal_cents: f.principalCents, interest_cents: f.interestCents, fee_cents: f.feeCents, total_cents: f.totalCents };
 }
+
+/** True when the draft carries no basis (hand-written, older) or its basis equals the current one. */
+export function draftBasisMatches(draft: Record<string, unknown> | null, current: DraftBasis): boolean {
+  const b = draft?.generated_for as Partial<DraftBasis> | undefined;
+  if (!b) return true;
+  return (
+    b.virtual_date === current.virtual_date &&
+    b.principal_cents === current.principal_cents &&
+    b.interest_cents === current.interest_cents &&
+    b.fee_cents === current.fee_cents &&
+    b.total_cents === current.total_cents
+  );
+}

@@ -54,8 +54,8 @@ function simulate(inv: InvoiceFacts, ledger: LedgerEntry[], calcDate: string): S
   if (inv.fixedCalendarDue) opts.push(due + 1);
   if (inv.firstPaymentRequestSentOn && dayOf(inv.firstPaymentRequestSentOn) > due) opts.push(dayOf(inv.firstPaymentRequestSentOn) + 1);
   if (inv.debtorType === "business" || inv.defaultWarningPrinted) {
-    if (inv.receivedOn) opts.push(Math.max(due, dayOf(inv.receivedOn)) + 30);
-    else if (inv.debtorType === "business") opts.push(due + 30);
+    if (inv.receivedOn) opts.push(Math.max(due, dayOf(inv.receivedOn)) + 31);
+    else if (inv.debtorType === "business") opts.push(due + 31);
   }
   const defaultDay = opts.length ? Math.min(...opts) : null;
 

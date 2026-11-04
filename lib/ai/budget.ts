@@ -7,7 +7,7 @@ import type { AiClient, ModelRequest, ModelResponse, ModelUsage } from "./model"
 import type { AiCallCounter, AiPurpose, AiRunRecorder, AiRunRow, QuotaDecision, QuotaRequest, QuotaScope } from "./ports";
 
 export const DEFAULT_WORKSPACE_LIMIT = 40;
-export const DEFAULT_GLOBAL_DAILY_LIMIT = 2000;
+export const DEFAULT_GLOBAL_DAILY_LIMIT = 500;
 
 export interface BudgetLimits {
   workspace: number;

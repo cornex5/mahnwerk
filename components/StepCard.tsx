@@ -7,7 +7,7 @@ import { draftFingerprint } from "@/lib/services/draftFingerprint";
 import { ApiError, apiPost, errorMessage } from "./lib/api";
 import type { CaseView } from "./lib/claim";
 import { eur, fmtDate, fmtTs, SENT_VIA_LABEL, STEP_LABEL, STEP_STATUS_LABEL } from "./lib/format";
-import { letterForStep, whyNowLines } from "./lib/letter";
+import { draftIsStale, letterForStep, whyNowLines } from "./lib/letter";
 import type { StepRow } from "./lib/types";
 import { GuardrailInspector } from "./GuardrailInspector";
 import { Badge, Button, Card, cx, Notice } from "./ui";
@@ -56,6 +56,7 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
   const [aiWhy, setAiWhy] = useState<{ state: "idle" | "loading" | "ok" | "unavailable" | "error"; text?: string }>({ state: "idle" });
 
   const letter = letterForStep(step, view, data.creditor, virtualDate);
+  const stale = draftIsStale(step, view, virtualDate);
   const claim = view?.claim;
   const factClaim = (step.facts as { claim?: { totalDueCents?: unknown } }).claim;
   const amount =
@@ -80,7 +81,7 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
     setDone(null);
     setPhase("approving");
     try {
-      await apiPost(`/api/steps/${step.id}/approve`, { draftFingerprint: draftFingerprint(step.draft, step.validation) });
+      await apiPost(`/api/steps/${step.id}/approve`, { draftFingerprint: stale ? draftFingerprint(null, null) : draftFingerprint(step.draft, step.validation) });
     } catch (err) {
       setError(errorMessage(err));
       setPhase(null);
@@ -218,6 +219,10 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
           {aiWhy.state === "unavailable" && <p className="text-xs text-muted">The AI explanation is not available in this deployment. The facts above come straight from the rules engine.</p>}
           {aiWhy.state === "error" && <p className="text-xs text-muted">The AI explanation failed ({aiWhy.text}). The facts above come straight from the rules engine.</p>}
         </div>
+      )}
+
+      {step.status === "proposed" && stale && (
+        <p className="mt-3 text-xs text-warn">The AI wording was written for an earlier date or amount, so the template with the current figures is shown and will be sent. Use "Redraft wording" for a new AI text.</p>
       )}
 
       {step.status === "proposed" && (

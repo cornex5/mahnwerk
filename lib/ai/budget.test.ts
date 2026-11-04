@@ -15,9 +15,9 @@ function setup(limits?: { workspace?: number; globalPerDay?: number }, now = new
 }
 
 describe("AI budget", () => {
-  it("defaults to 40 per workspace and 2000 per day globally", () => {
+  it("defaults to 40 per workspace and 500 per day globally", () => {
     expect(DEFAULT_WORKSPACE_LIMIT).toBe(40);
-    expect(DEFAULT_GLOBAL_DAILY_LIMIT).toBe(2000);
+    expect(DEFAULT_GLOBAL_DAILY_LIMIT).toBe(500);
   });
 
   it("caps calls per workspace with a typed quota_exhausted result", async () => {

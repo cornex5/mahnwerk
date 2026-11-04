@@ -19,6 +19,8 @@ export interface LetterFacts {
   openFeeCents: number;
   totalDueCents: number;
   dueDate: string;
+  /** PayPal invoice page of this invoice. Added to the letter when known. */
+  payLink?: string;
 }
 
 export interface Letter {
@@ -72,6 +74,7 @@ function lines(f: LetterFacts): string[] {
     if (f.kind === "mahnung2") out.push("Bitte zahlen Sie den Gesamtbetrag innerhalb von 10 Tagen. Danach behalten wir uns weitere Schritte vor.");
     if (f.kind === "handover") out.push("Ohne Zahlung innerhalb von 14 Tagen geben wir die Forderung ab (gerichtliches Mahnverfahren oder Inkasso).");
     if (f.kind === "fee_invoice") out.push("Die Hauptforderung ist beglichen. Offen sind noch Verzugszinsen und gegebenenfalls die Pauschale.");
+    if (f.payLink && f.kind !== "fee_invoice") out.push(`Zahlung online über PayPal: ${f.payLink}`);
     out.push("", "Automatisch berechnet, keine Rechtsberatung.", "", `Mit freundlichen Grüßen`, f.creditorName);
     return out;
   }
@@ -89,6 +92,7 @@ function lines(f: LetterFacts): string[] {
   if (f.kind === "mahnung2") out.push("Please pay the total within 10 days. After that we reserve further steps.");
   if (f.kind === "handover") out.push("Without payment within 14 days we will hand the claim over (court dunning procedure or collection).");
   if (f.kind === "fee_invoice") out.push("The principal has been paid. Default interest and, where applicable, the flat fee are still open.");
+  if (f.payLink && f.kind !== "fee_invoice") out.push(`Pay online with PayPal: ${f.payLink}`);
   out.push("", "Calculated automatically. This is not legal advice.", "", "Kind regards", f.creditorName);
   return out;
 }

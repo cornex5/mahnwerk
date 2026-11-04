@@ -89,10 +89,10 @@ describe("required tests", () => {
     expect(r.totalDueCents).toBe(100000);
   });
 
-  it("6. business with unknown receivedOn: default on due + 30", () => {
+  it("6. business with unknown receivedOn: default on the 31st day after due", () => {
     const inv = biz({ fixedCalendarDue: false });
     const r = computeDefaultStart(inv, DE_RULESET);
-    expect(r.defaultStart).toBe("2026-08-30");
+    expect(r.defaultStart).toBe("2026-08-31");
     expect(r.defaultRule).toBe("thirty_day_rule");
     expect(r.citation).toContain("BGB § 286(3) sentence 1");
   });
@@ -279,7 +279,7 @@ describe("edge cases", () => {
     expect(r.segments[0].interestExact.startsWith("7781917808219.178082191780821917808")).toBe(true);
   });
 
-  it("consumer default via printed warning: 30 days after the later of due and receipt", () => {
+  it("consumer default via printed warning: default on day 31 after the later of due and receipt", () => {
     const inv = biz({
       debtorType: "consumer",
       fixedCalendarDue: false,
@@ -288,17 +288,17 @@ describe("edge cases", () => {
       receivedOn: "2026-07-05",
     });
     const r = run(inv, "2026-08-19");
-    expect(r.defaultStart).toBe("2026-08-09"); // 2026-07-10 + 30
+    expect(r.defaultStart).toBe("2026-08-10"); // 2026-07-10 + 31 (30-day period ends after day 30, BGB 187, 188)
     expect(r.defaultRule).toBe("thirty_day_rule");
     expect(r.citation).toContain("BGB § 286(3) sentence 1, second half-sentence");
-    // 10 days at 6.52 percent: 100000 x 0.0652 x 10 / 365 = 178.6301 -> 179
-    expect(r.interestAccruedCents).toBe(179);
+    // 9 days at 6.52 percent: 100000 x 0.0652 x 9 / 365 = 160.7671 -> 161
+    expect(r.interestAccruedCents).toBe(161);
     expect(r.flatFeeCents).toBe(0);
   });
 
   it("receipt after due date moves the 30-day start", () => {
     const r = computeDefaultStart(biz({ fixedCalendarDue: false, dueDate: "2026-07-10", receivedOn: "2026-07-20" }), DE_RULESET);
-    expect(r.defaultStart).toBe("2026-08-19");
+    expect(r.defaultStart).toBe("2026-08-20");
   });
 
   it("payment request after due date triggers default the next day; earliest rule wins", () => {

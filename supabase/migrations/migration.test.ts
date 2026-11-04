@@ -59,7 +59,7 @@ describe("0001_init.sql", () => {
       marginBp: DE_RULESET.marginBp,
       flatFeeCents: DE_RULESET.flatFeeCents,
       dayCountBasis: DE_RULESET.dayCountBasis,
-      thirtyDayRuleDays: DE_RULESET.thirtyDayRuleDays,
+      thirtyDayRuleDays: 30, // as first seeded; migration 0006 moves it to 31
       waitingDays: DE_RULESET.waitingDays,
       allocationOrder: [...DE_RULESET.allocationOrder],
     });

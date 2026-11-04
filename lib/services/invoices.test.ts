@@ -58,7 +58,7 @@ describe("createAndSendInvoice", () => {
     const w = await makeServiceWorld();
     const r = await createAndSendInvoice(w.deps, USER, input(w, { debtorId: w.consumer.id }));
     const body = w.paypal.invoices.get(r.invoice.paypal_invoice_id!)!.body as { detail: { note: string }; primary_recipients: { billing_info: Record<string, unknown> }[] };
-    expect(body.detail.note).toMatch(/BGB 286 Abs\. 3/);
+    expect(body.detail.note).toMatch(/§ 286 Abs\. 3 BGB/);
     expect(body.detail.note).toMatch(/19 UStG/);
     expect(body.primary_recipients[0].billing_info).toMatchObject({ name: { given_name: "Lena", surname: "Beispiel" }, email_address: w.consumer.email });
   });

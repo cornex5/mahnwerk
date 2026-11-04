@@ -26,7 +26,8 @@ import {
 import { STEP_SPECS, claimAt, isDunningKind, planNextStage, type DunningKind, type StagePlan } from "./claims";
 import { draftFingerprint } from "./draftFingerprint";
 import { letterFor, templateLetter, type Letter, type LetterFacts } from "./letters";
-import { draftBasisMatches, generateStepDraft } from "./stepDraft";
+import { draftBasisMatches } from "./draftBasis";
+import { generateStepDraft } from "./stepDraft";
 import { isDefinitivePayPalFailure, payPalIssue, safeMessage } from "./paypalErrors";
 import type { FullCaseRow, FullInvoiceRow, FullStepRow, WorkspaceRow } from "./store";
 
@@ -182,6 +183,28 @@ async function loadStepForMutation(deps: ServiceDeps, actorUid: string, stepId: 
   return { step, ws };
 }
 
+/**
+ * Fingerprint of the wording that would be sent right now: the stored AI draft while it still matches the
+ * current amounts and date, otherwise the template (see executeDunningStep). The step card computes the same.
+ */
+async function shownDraftFingerprint(deps: ServiceDeps, step: FullStepRow, ws: WorkspaceRow): Promise<string> {
+  const stored = draftFingerprint(step.draft, step.validation);
+  if (!isDunningKind(step.kind) || !step.draft) return stored;
+  const c = await deps.store.getCase(step.case_id);
+  const inv = c ? await deps.store.getFullInvoice(c.invoice_id) : null;
+  if (!c || !inv) return stored;
+  const virtualDate = virtualDateFor(ws, deps.now());
+  const f = await letterFactsFor(deps, step.kind, step, inv, virtualDate);
+  const current = draftBasisMatches(step.draft, {
+    virtual_date: virtualDate,
+    principal_cents: f.openPrincipalCents,
+    interest_cents: f.openInterestCents,
+    fee_cents: f.openFeeCents,
+    total_cents: f.totalDueCents,
+  });
+  return current ? stored : draftFingerprint(null, null);
+}
+
 export async function approveStep(
   deps: ServiceDeps,
   actorUid: string,
@@ -190,7 +213,7 @@ export async function approveStep(
 ): Promise<{ step: FullStepRow; changed: boolean }> {
   const { step, ws } = await loadStepForMutation(deps, actorUid, stepId);
   // The approval covers the wording the person saw. If a new draft arrived meanwhile, ask again.
-  if (opts.draftFingerprint && step.status === "proposed" && opts.draftFingerprint !== draftFingerprint(step.draft, step.validation)) {
+  if (opts.draftFingerprint && step.status === "proposed" && opts.draftFingerprint !== (await shownDraftFingerprint(deps, step, ws))) {
     throw new ServiceError("conflict", "The wording of this letter changed while you were looking at it. Please read the new text and approve again.");
   }
   const r = await deps.store.decideStep({ stepId, decision: "approve", actorUid, virtualDate: virtualDateFor(ws, deps.now()), note: null });
@@ -268,6 +291,7 @@ async function letterFactsFor(deps: ServiceDeps, kind: LetterFacts["kind"], step
     openInterestCents: claim ? claim.openInterestCents : (approved.openInterestCents ?? 0),
     openFeeCents: claim ? claim.openFeeCents : (approved.openFeeCents ?? 0),
     totalDueCents: claim ? claim.totalDueCents : total,
+    payLink: inv.paypal_invoice_id ? `https://${deps.paypal.env === "sandbox" ? "www.sandbox.paypal.com" : "www.paypal.com"}/invoice/p/#${encodeURIComponent(inv.paypal_invoice_id)}` : undefined,
   };
 }
 

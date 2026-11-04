@@ -11,7 +11,9 @@ export const DE_RULESET: RuleSet = {
   // BGB 288(5): 40 EUR flat fee only when the debtor is not a consumer.
   flatFeeCents: { consumer: 0, business: 4000 },
   dayCountBasis: 365,
-  thirtyDayRuleDays: 30,
+  // BGB 286(3): default at the latest 30 days after due date and receipt. The period runs from the next
+  // day (BGB 187(1)) and ends with day 30 (BGB 188(1)), so default and interest begin on day 31.
+  thirtyDayRuleDays: 31,
   // Product policy (not statutory): minimum days to wait after the previous step.
   waitingDays: { reminder: 0, mahnung1: 7, mahnung2: 10, handover: 14 },
   // BGB 367(1): costs first, then interest, then principal.

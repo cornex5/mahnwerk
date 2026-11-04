@@ -7,32 +7,19 @@ import type { LetterFacts as AiLetterFacts, LetterKind as AiLetterKind } from ".
 import { letterFactsFromCalc } from "../ai/letterFacts";
 import { addDays } from "../rules/dates";
 import { claimAt, isDunningKind, type DunningKind } from "./claims";
-import { DEADLINE_DAYS, draftBasisOf, type DraftBasis } from "./draftBasis";
+import { DEADLINE_DAYS, draftBasisMatches, draftBasisOf, type DraftBasis } from "./draftBasis";
 import type { ServiceDeps } from "./context";
 import { virtualDateFor } from "./context";
 import { ServiceError } from "./errors";
 import { safeMessage } from "./paypalErrors";
 import type { FullCaseRow, FullInvoiceRow, FullStepRow, WorkspaceRow } from "./store";
 
-export { DEADLINE_DAYS, draftBasisOf };
+export { DEADLINE_DAYS, draftBasisOf, draftBasisMatches };
 export type { DraftBasis };
 
 export const DEFAULT_DRAFT_TIMEOUT_MS = 30_000;
 
 const AI_KIND: Record<DunningKind, AiLetterKind> = { reminder: "reminder", mahnung1: "mahnung1", mahnung2: "mahnung2", handover: "handover_notice" };
-
-/** True when the draft carries no basis (hand-written, older) or its basis equals the current one. */
-export function draftBasisMatches(draft: Record<string, unknown> | null, current: DraftBasis): boolean {
-  const b = draft?.generated_for as Partial<DraftBasis> | undefined;
-  if (!b) return true;
-  return (
-    b.virtual_date === current.virtual_date &&
-    b.principal_cents === current.principal_cents &&
-    b.interest_cents === current.interest_cents &&
-    b.fee_cents === current.fee_cents &&
-    b.total_cents === current.total_cents
-  );
-}
 
 export interface StepAiContext {
   step: FullStepRow;

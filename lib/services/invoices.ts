@@ -52,7 +52,7 @@ export interface CreateInvoiceResult {
 const NONCE_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
 export const DEFAULT_WARNING_TEXT = {
-  de: "Hinweis: Sie geraten spaetestens 30 Tage nach Faelligkeit und Zugang dieser Rechnung in Verzug (BGB 286 Abs. 3).",
+  de: "Hinweis: Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).",
   en: "Notice: you will be in default no later than 30 days after the due date and receipt of this invoice (German Civil Code, BGB 286(3)).",
 } as const;
 
@@ -85,7 +85,7 @@ export function buildInvoiceBody(args: {
   const { debtor } = args;
   const notes: string[] = [];
   if (args.creditor?.kleinunternehmer) {
-    notes.push(debtor.lang === "de" ? "Gemaess 19 UStG wird keine Umsatzsteuer berechnet." : "No VAT is charged under the small business scheme (UStG 19).");
+    notes.push(debtor.lang === "de" ? "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet." : "No VAT is charged under the small business scheme (UStG 19).");
   }
   if (args.defaultWarningPrinted) notes.push(DEFAULT_WARNING_TEXT[debtor.lang]);
   notes.push("Mahnwerk demo (PayPal sandbox).");
