@@ -27,8 +27,12 @@ export async function apiPost<T = unknown>(path: string, body: unknown = {}): Pr
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(75_000),
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "TimeoutError") {
+      throw new ApiError(0, "timeout", "The server took too long to answer. Reload the page to see what happened before you retry.");
+    }
     throw new ApiError(0, "network", "Network error. Check your connection and try again.");
   }
   const text = await res.text();

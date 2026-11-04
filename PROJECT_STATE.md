@@ -76,3 +76,4 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - Jonas: Nov 8 20:00 AG Grid go/no-go, Nov 10 18:00 feature freeze, record and upload video (public YouTube, under 3 min, record on a day without sandbox reminders used), submit Nov 11 evening
 - Claude: judge walkthrough from a clean session, AI budget exhausted live test, "Sending..." hang (cause unknown), RSC prefetch 503 seen once, gitleaks check before freeze, look at case page, queue and new-invoice form by eye once screenshots work
 - README screenshots added (landing, dashboard, queue, case) on 2026-11-03
+- 2026-11-04: GitHub About set (description plus 7 topics, verified via API). Secret scan of tree and history by regex: clean (gitleaks not installed). Approve and execute routes now maxDuration 60 and the client fetch times out after 75 s with a clear message (possible cause of the "Sending..." hang, not confirmed).
