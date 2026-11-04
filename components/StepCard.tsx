@@ -222,7 +222,7 @@ export function StepCard({ step, view, showCaseLink = false, onActed }: { step: 
       )}
 
       {step.status === "proposed" && stale && (
-        <p className="mt-3 text-xs text-warn">The AI wording was written for an earlier date or amount, so the template with the current figures is shown and will be sent. Use "Redraft wording" for a new AI text.</p>
+        <p className="mt-3 text-xs text-warn">The AI wording was written for an earlier date or amount, so the template with the current figures is shown and will be sent. Use Redraft wording for a new AI text.</p>
       )}
 
       {step.status === "proposed" && (
