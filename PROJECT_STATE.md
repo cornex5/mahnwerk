@@ -77,3 +77,5 @@ Dunning and receivables engine for German freelancers and small firms on PayPal 
 - Claude: judge walkthrough from a clean session, AI budget exhausted live test, "Sending..." hang (cause unknown), RSC prefetch 503 seen once, gitleaks check before freeze, look at case page, queue and new-invoice form by eye once screenshots work
 - README screenshots added (landing, dashboard, queue, case) on 2026-11-03
 - 2026-11-04: GitHub About set (description plus 7 topics, verified via API). Secret scan of tree and history by regex: clean (gitleaks not installed). Approve and execute routes now maxDuration 60 and the client fetch times out after 75 s with a clear message (possible cause of the "Sending..." hang, not confirmed).
+- 2026-11-04 live walkthrough (Chrome, demo workspace 40084404): demo start, queue letter with AI wording, approve sent a PayPal sandbox reminder (10 to 16 s, so "Sending..." is slow sandbox, not a hang), exhausted AI budget (counter set to 40 by SQL): copilot says budget used up, next proposal falls back to a labelled template. All as designed.
+- Still open: RSC prefetch 503 seen once (not reproduced), video, Devpost submit.
