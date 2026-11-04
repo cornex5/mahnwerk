@@ -166,6 +166,21 @@ describe("approval gate: nothing outbound without an approved step", () => {
   });
 });
 
+describe("approval is bound to the wording that will be sent", () => {
+  it("refuses the fingerprint of a stale AI draft and accepts the template fingerprint", async () => {
+    const w = await makeServiceWorld();
+    const caseId = await newCase(w);
+    await advanceClock(w.deps, w.ws.id, USER, 8);
+    const s = await proposeAt(w, caseId);
+    const row = w.store.fullSteps.find((x) => x.id === s.id)!;
+    row.draft = { subject: "AI subject", body: "AI body", generated_for: { virtual_date: "2000-01-01", principal_cents: 1, interest_cents: 0, fee_cents: 0, total_cents: 1 } };
+    row.validation = { passed: true, issues: [] };
+    await expect(approveStep(w.deps, USER, s.id, { draftFingerprint: draftFingerprint(row.draft, row.validation) })).rejects.toMatchObject({ code: "conflict" });
+    const ok = await approveStep(w.deps, USER, s.id, { draftFingerprint: draftFingerprint(null, null) });
+    expect(ok.changed).toBe(true);
+  });
+});
+
 describe("execute", () => {
   async function approvedReminder(w: ServiceWorld, opts: Parameters<typeof newCase>[1] = {}) {
     const caseId = await newCase(w, opts);

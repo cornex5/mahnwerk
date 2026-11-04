@@ -8,6 +8,7 @@ import { PayPalPanel } from "./PayPalPanel";
 import { ReplyBox } from "./ReplyBox";
 import { SimulatorPanel } from "./SimulatorPanel";
 import { StepCard } from "./StepCard";
+import { WhatIfPanel } from "./WhatIfPanel";
 import { Card, EmptyState, Notice, SectionTitle, StateBadge } from "./ui";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -71,6 +72,7 @@ export function CaseDetail({ caseId }: { caseId: string }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="min-w-0 space-y-6">
           <ClaimBreakdown view={view} />
+          <WhatIfPanel view={view} />
 
           <section className="space-y-3" aria-labelledby="steps-h">
             <SectionTitle>
